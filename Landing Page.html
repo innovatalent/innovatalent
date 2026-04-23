@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Innova Talent Labs — We build high-performance tech teams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: oklch(0.12 0.008 250);
+    --bg-2: oklch(0.16 0.012 250);
+    --bg-3: oklch(0.20 0.015 250);
+    --ink: oklch(0.98 0.005 250);
+    --ink-dim: oklch(0.72 0.01 250);
+    --ink-mute: oklch(0.52 0.012 250);
+    --line: oklch(0.28 0.012 250);
+    --accent: oklch(0.74 0.14 230);
+    --accent-soft: oklch(0.74 0.14 230 / 0.12);
+    --warm: oklch(0.80 0.12 60);
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body {
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "ss01","ss02","cv11";
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+  .font-mono { font-family: 'Geist Mono', ui-monospace, monospace; letter-spacing: 0; }
+  .text-ink { color: var(--ink); }
+  .text-dim { color: var(--ink-dim); }
+  .text-mute { color: var(--ink-mute); }
+  .bg-surface { background: var(--bg-2); }
+  .bg-surface-2 { background: var(--bg-3); }
+  .border-line { border-color: var(--line); }
+  .accent { color: var(--accent); }
+  .bg-accent { background: var(--accent); }
+  .bg-accent-soft { background: var(--accent-soft); }
+
+  /* Reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1); }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: .08s; }
+  .reveal-delay-2 { transition-delay: .16s; }
+  .reveal-delay-3 { transition-delay: .24s; }
+  .reveal-delay-4 { transition-delay: .32s; }
+  .reveal-delay-5 { transition-delay: .40s; }
+
+  /* Hero grid */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, oklch(1 0 0 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(1 0 0 / 0.035) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 40%, transparent 85%);
+  }
+  .aurora {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  }
+  .aurora::before, .aurora::after {
+    content: ""; position: absolute; border-radius: 50%;
+    filter: blur(80px); opacity: 0.55;
+    animation: float 18s ease-in-out infinite;
+  }
+  .aurora::before {
+    width: 560px; height: 560px; left: -10%; top: -20%;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 60%);
+  }
+  .aurora::after {
+    width: 640px; height: 640px; right: -15%; top: 10%;
+    background: radial-gradient(circle, oklch(0.55 0.18 290) 0%, transparent 60%);
+    animation-delay: -6s;
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(40px,-30px) scale(1.08); }
+  }
+
+  /* Particles */
+  .particle {
+    position: absolute; width: 2px; height: 2px; background: var(--ink);
+    border-radius: 50%; opacity: 0.35;
+    animation: drift linear infinite;
+  }
+  @keyframes drift {
+    from { transform: translateY(0); opacity: 0; }
+    10% { opacity: 0.5; }
+    90% { opacity: 0.5; }
+    to { transform: translateY(-120vh); opacity: 0; }
+  }
+
+  /* Primary button */
+  .btn-primary {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 22px; border-radius: 12px;
+    background: var(--ink); color: var(--bg);
+    font-weight: 500; font-size: 15px;
+    transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s;
+    box-shadow: 0 0 0 1px oklch(1 0 0 / 0.1), 0 20px 40px -20px oklch(0.74 0.14 230 / 0.5);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px oklch(1 0 0 / 0.2), 0 28px 60px -20px oklch(0.74 0.14 230 / 0.7); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 20px; border-radius: 12px;
+    background: transparent; color: var(--ink);
+    font-weight: 500; font-size: 15px;
+    box-shadow: inset 0 0 0 1px var(--line);
+    transition: background .2s, box-shadow .2s;
+  }
+  .btn-ghost:hover { background: oklch(1 0 0 / 0.04); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.2); }
+
+  /* Cards */
+  .card {
+    background: linear-gradient(180deg, oklch(0.18 0.01 250) 0%, oklch(0.14 0.01 250) 100%);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .card-hover { transition: transform .4s cubic-bezier(.2,.7,.2,1), border-color .3s, box-shadow .3s; }
+  .card-hover:hover { transform: translateY(-4px); border-color: oklch(1 0 0 / 0.2); box-shadow: 0 30px 60px -30px oklch(0 0 0 / 0.6); }
+
+  /* Chaotic problem bg */
+  .chaos-bg {
+    background:
+      radial-gradient(circle at 20% 30%, oklch(0.25 0.08 20 / 0.25) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, oklch(0.25 0.10 280 / 0.2) 0%, transparent 40%),
+      var(--bg);
+  }
+
+  /* Dotted timeline */
+  .dotted-v { background-image: linear-gradient(var(--line) 33%, transparent 33%); background-size: 1px 8px; background-repeat: repeat-y; }
+
+  /* Gradient stroke */
+  .stroke-gradient {
+    background: linear-gradient(135deg, oklch(0.98 0.005 250) 0%, oklch(0.70 0.10 230) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* Marquee */
+  .marquee { display: flex; overflow: hidden; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
+  .marquee-track { display: flex; gap: 64px; animation: marquee 40s linear infinite; flex-shrink: 0; padding-right: 64px; }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: oklch(0 0 0 / 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 100; display: flex; align-items: center; justify-content: center;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-panel {
+    width: min(920px, 95vw); height: min(720px, 92vh);
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 20px;
+    overflow: hidden; position: relative;
+    animation: panelIn .4s cubic-bezier(.2,.7,.2,1);
+  }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(20px) scale(.97);} to {opacity:1; transform: translateY(0) scale(1);} }
+
+  /* Tweaks */
+  .tweaks-panel {
+    position: fixed; right: 20px; bottom: 20px; z-index: 90;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; width: 260px;
+    box-shadow: 0 20px 60px oklch(0 0 0 / 0.5);
+    font-family: 'Geist Mono', monospace; font-size: 12px;
+  }
+
+  /* Scroll behavior */
+  html { scroll-behavior: smooth; }
+
+  /* Nav */
+  .nav-blur { backdrop-filter: blur(12px) saturate(140%); background: oklch(0.12 0.008 250 / 0.7); }
+
+  /* Profile cards in network section */
+  .profile-card {
+    position: absolute;
+    background: linear-gradient(180deg, oklch(0.20 0.012 250) 0%, oklch(0.14 0.012 250) 100%);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1);
+    opacity: 0; transform: scale(.8);
+    min-width: 168px;
+  }
+  .profile-card.in { opacity: 1; transform: scale(1); }
+  .profile-card .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+  /* Connecting line animation */
+  .connect-line {
+    stroke-dasharray: 4 4;
+    stroke: oklch(0.74 0.14 230 / 0.4);
+    stroke-width: 1;
+    fill: none;
+    animation: dash 2s linear infinite;
+  }
+  @keyframes dash { to { stroke-dashoffset: -16; } }
+
+  /* Metric number */
+  .metric-num { font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.38 0.012 250); }
+
+  /* Noise texture overlay */
+  .noise { position: fixed; inset: 0; pointer-events: none; opacity: 0.03; z-index: 1; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div id="root"></div>
+
+<script>
+// Persist tweaks
+window.__TWEAKS = /*EDITMODE-BEGIN*/{
+  "accentHue": 228,
+  "networkDensity": "medium",
+  "calendlyUrl": "https:\/\/calendly.com\/innovatalent\/30min",
+  "showParticles": true
+}/*EDITMODE-END*/;
+</script>
+
+<script type="text/babel" src="./components/Nav.jsx"></script>
+<script type="text/babel" src="./components/Hero.jsx"></script>
+<script type="text/babel" src="./components/WhatWeDo.jsx"></script>
+<script type="text/babel" src="./components/Problem.jsx"></script>
+<script type="text/babel" src="./components/Process.jsx"></script>
+<script type="text/babel" src="./components/Network.jsx"></script>
+<script type="text/babel" src="./components/Team.jsx"></script>
+<script type="text/babel" src="./components/Results.jsx"></script>
+<script type="text/babel" src="./components/FinalCTA.jsx"></script>
+<script type="text/babel" src="./components/Footer.jsx"></script>
+<script type="text/babel" src="./components/CalendlyModal.jsx"></script>
+<script type="text/babel" src="./components/Tweaks.jsx"></script>
+<script type="text/babel" src="./components/App.jsx"></script>
+</body>
+</html>
