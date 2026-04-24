@@ -42,7 +42,7 @@ function Footer() {
             <div>
               <div className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-mute mb-4">Contacto</div>
               <ul className="space-y-2.5 text-[13.5px] text-dim">
-                <li><a className="hover:text-ink transition" href="mailto:innovatalenthhrr@gmail.com">innovatalenthhrr@gmail.com</a></li>
+                <li><a className="hover:text-ink transition" href="mailto:consulting@innovatalentlabs.com">consulting@innovatalentlabs.com</a></li>
                 <li><a className="hover:text-ink transition" href="https://ar.linkedin.com/in/mailen-juan-6437b7240" target="_blank">LinkedIn</a></li>
                 <li><a className="hover:text-ink transition" href="https://www.instagram.com/innovatalent.hr" target="_blank">Instagram</a></li>
               </ul>
