@@ -42,6 +42,7 @@ function App() {
         <WhatWeDo />
         <Problem />
         <Process />
+        <Services />
         <Network density={tweaks.networkDensity} />
         <Team />
         <Results />
@@ -49,6 +50,7 @@ function App() {
       </main>
       <Footer />
       <CalendlyModal open={modalOpen} onClose={() => setModalOpen(false)} calendlyUrl={tweaks.calendlyUrl} />
+      <FloatingWhatsApp />
       <Tweaks tweaks={tweaks} setTweak={setTweak} />
     </>
   );

@@ -42,7 +42,18 @@ function Footer() {
             <div>
               <div className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-mute mb-4">Contacto</div>
               <ul className="space-y-2.5 text-[13.5px] text-dim">
-                <li><a className="hover:text-ink transition" href="mailto:consulting@innovatalentlabs.com">consulting@innovatalentlabs.com</a></li>
+                <li>
+                  <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-mute mb-0.5">Reclutamiento</div>
+                  <a className="hover:text-ink transition" href="mailto:rrhh@innovatalentlabs.com">rrhh@innovatalentlabs.com</a>
+                </li>
+                <li>
+                  <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-mute mb-0.5 mt-2">Data · Web · Automatizaciones</div>
+                  <a className="hover:text-ink transition" href="mailto:data@innovatalentlabs.com">data@innovatalentlabs.com</a>
+                </li>
+                <li>
+                  <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-mute mb-0.5 mt-2">Consultas generales</div>
+                  <a className="hover:text-ink transition" href="mailto:consulting@innovatalentlabs.com">consulting@innovatalentlabs.com</a>
+                </li>
                 <li><a className="hover:text-ink transition" href="https://ar.linkedin.com/in/mailen-juan-6437b7240" target="_blank">LinkedIn</a></li>
                 <li><a className="hover:text-ink transition" href="https://www.instagram.com/innovatalent.hr" target="_blank">Instagram</a></li>
               </ul>

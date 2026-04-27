@@ -28,10 +28,10 @@ function Nav({ onCTA }) {
         </nav>
         <div className="flex items-center gap-3">
           <a href="#" className="hidden sm:inline text-[14px] text-dim hover:text-ink transition">Ingresar</a>
-          <button onClick={onCTA} className="btn-primary !py-2.5 !px-4 !text-[14px]">
-            Agendá una llamada
+          <a href="https://calendly.com/innovatalent/30min" target="_blank" rel="noopener" className="btn-primary !py-2.5 !px-4 !text-[14px]">
+            Agendar diagnóstico
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
+          </a>
         </div>
       </div>
     </header>
