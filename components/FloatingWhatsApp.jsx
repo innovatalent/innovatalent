@@ -9,13 +9,14 @@ function FloatingWhatsApp() {
 
   React.useEffect(() => {
     const onScroll = () => {
-      const s = document.getElementById('services');
+      const s = document.getElementById('what');
       if (!s) return;
       const r = s.getBoundingClientRect();
       const vh = window.innerHeight;
-      // Trigger automation mode when Services section is in the middle of viewport
-      const inView = r.top < vh * 0.5 && r.bottom > vh * 0.5;
-      setMode(inView ? 'automation' : 'recruitment');
+      // Switch to automation tooltip when scrolled to the Tech group (lower half of section)
+      const sectionMid = r.top + r.height * 0.65;
+      const inTech = sectionMid < vh * 0.6 && r.bottom > vh * 0.4;
+      setMode(inTech ? 'automation' : 'recruitment');
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -23,7 +24,7 @@ function FloatingWhatsApp() {
   }, []);
 
   const isAutomation = mode === 'automation';
-  const href = isAutomation ? 'https://wa.me/542616042245' : 'https://w.app/innovatalentlabs';
+  const href = 'https://w.app/innovatalentlabs';
   const label = isAutomation ? 'Consultá por automatización · data · web' : 'Hablemos por WhatsApp';
 
   return (

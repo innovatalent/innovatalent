@@ -42,7 +42,6 @@ function App() {
         <WhatWeDo />
         <Problem />
         <Process />
-        <Services />
         <Network density={tweaks.networkDensity} />
         <Team />
         <Results />
