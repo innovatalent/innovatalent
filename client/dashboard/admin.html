@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin — Innova Talent</title>
+<link rel="icon" type="image/png" href="/assets/innova-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root { --bg: oklch(0.12 0.008 250); --bg-2: oklch(0.16 0.012 250); --bg-3: oklch(0.20 0.015 250); --ink: oklch(0.98 0.005 250); --ink-dim: oklch(0.72 0.01 250); --ink-mute: oklch(0.52 0.012 250); --line: oklch(0.28 0.012 250); --accent: oklch(0.74 0.14 230); --accent-soft: oklch(0.74 0.14 230 / 0.12); }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; margin: 0; }
+  .sidebar { width: 240px; background: var(--bg-2); border-right: 1px solid var(--line); height: 100vh; position: fixed; left: 0; top: 0; padding: 20px 0; overflow-y: auto; }
+  .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--ink-dim); text-decoration: none; font-size: 14px; transition: all .15s; }
+  .sidebar a:hover, .sidebar a.active { color: var(--ink); background: var(--accent-soft); }
+  .main { margin-left: 240px; padding: 24px 32px; min-height: 100vh; }
+  .stat-card { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .stat-num { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .table { width: 100%; border-collapse: collapse; }
+  .table th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-mute); border-bottom: 1px solid var(--line); }
+  .table td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid oklch(0.28 0.012 250 / 0.5); }
+  .table tr:hover td { background: var(--accent-soft); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge-new { background: oklch(0.74 0.14 230 / 0.15); color: oklch(0.74 0.14 230); }
+  .badge-contacted { background: oklch(0.74 0.14 60 / 0.15); color: oklch(0.80 0.12 60); }
+  .badge-qualified { background: oklch(0.74 0.14 150 / 0.15); color: oklch(0.75 0.14 150); }
+  .badge-won { background: oklch(0.74 0.14 150 / 0.2); color: oklch(0.85 0.14 150); }
+  .badge-lost { background: oklch(0.5 0.1 20 / 0.2); color: oklch(0.7 0.12 20); }
+  .kanban-col { min-width: 220px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; flex-shrink: 0; }
+  .kanban-card { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
+  .kanban-card:hover { border-color: var(--accent); }
+  .tab { padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; color: var(--ink-dim); background: none; border: none; transition: all .15s; }
+  .tab.active { background: var(--accent-soft); color: var(--ink); }
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div style="padding:0 20px 20px;border-bottom:1px solid var(--line);margin-bottom:12px">
+    <img src="/assets/innova-logo.png" alt="Logo" style="height:32px" />
+    <div class="text-xs mt-2" style="color:var(--ink-mute)">Panel Admin</div>
+  </div>
+  <a href="#" class="active" data-tab="dashboard">📊 Dashboard</a>
+  <a href="#" data-tab="pipeline">🔄 Pipeline</a>
+  <a href="#" data-tab="clients">👥 Leads</a>
+  <a href="#" data-tab="candidates">💼 Candidatos</a>
+  <a href="#" data-tab="meetings">📅 Reuniones</a>
+  <a href="#" data-tab="messages">✉️ Mensajes</a>
+  <a href="#" data-tab="ai">🤖 IA Conversaciones</a>
+  <a href="#" data-tab="sequences">⚡ Automatización</a>
+  <a href="#" data-tab="interviews">🎯 Entrevistas</a>
+  <div style="position:absolute;bottom:20px;left:0;right:0;padding:0 20px">
+    <a href="/" style="font-size:13px">← Volver al sitio</a>
+    <a href="#" id="logoutBtn" style="font-size:13px;color:oklch(0.7 0.12 20)">Cerrar sesión</a>
+  </div>
+</nav>
+
+<div class="main" id="mainContent">
+  <div id="loading" class="text-center py-20 text-dim">Cargando...</div>
+</div>
+
+<script>
+const API = '/api';
+let token = localStorage.getItem('accessToken');
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+if (!token || user.role !== 'admin') { window.location.href = '/auth/login.html'; }
+
+async function api(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers },
+  });
+  if (res.status === 401) {
+    const refresh = localStorage.getItem('refreshToken');
+    if (refresh) {
+      const r = await fetch(`${API}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: refresh }) });
+      if (r.ok) {
+        const data = await r.json();
+        token = data.accessToken;
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        return api(path, opts);
+      }
+    }
+    window.location.href = '/auth/login.html';
+  }
+  return res.json();
+}
+
+// Tab navigation
+let currentTab = 'dashboard';
+document.querySelectorAll('.sidebar a[data-tab]').forEach(a => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
+    a.classList.add('active');
+    currentTab = a.dataset.tab;
+    loadTab(currentTab);
+  });
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await fetch(`${API}/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+  localStorage.clear();
+  window.location.href = '/auth/login.html';
+});
+
+async function loadTab(tab) {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="text-center py-20 text-dim">Cargando...</div>';
+
+  switch (tab) {
+    case 'dashboard': return renderDashboard();
+    case 'pipeline': return renderPipeline();
+    case 'clients': return renderClients();
+    case 'candidates': return renderCandidates();
+    case 'meetings': return renderMeetings();
+    case 'messages': return renderMessages();
+    case 'ai': return renderAI();
+    case 'sequences': return renderSequences();
+    case 'interviews': return renderInterviews();
+  }
+}
+
+async function renderDashboard() {
+  const stats = await api('/admin/stats');
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <h1 class="text-2xl font-semibold mb-6">Dashboard</h1>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Total Leads</div><div class="stat-num mt-1">${stats.clients.total}</div><div class="text-xs mt-1" style="color:var(--accent)">+${stats.clients.last_7_days} esta semana</div></div>
+      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Candidatos</div><div class="stat-num mt-1">${stats.candidates.total}</div></div>
+      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Suscripciones</div><div class="stat-num mt-1">${stats.subscriptions.active}</div><div class="text-xs mt-1" style="color:var(--ink-mute)">${stats.subscriptions.total} total</div></div>
+      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Revenue (USD)</div><div class="stat-num mt-1">$${stats.payments.revenue.toLocaleString()}</div><div class="text-xs mt-1" style="color:var(--accent)">$${stats.payments.revenue_30d.toLocaleString()} este mes</div></div>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Reuniones</div><div class="stat-num mt-1">${stats.meetings.upcoming}</div><div class="text-xs mt-1" style="color:var(--ink-mute)">próximas</div></div>
+      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Mensajes enviados</div><div class="stat-num mt-1">${stats.messages.sent}</div><div class="text-xs mt-1 text-red-400">${stats.messages.failed} fallidos</div></div>
+      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Pipeline</div><div class="flex gap-2 mt-2 flex-wrap">
+        <span class="badge badge-new">${stats.clients.new} nuevos</span>
+        <span class="badge badge-contacted">${stats.clients.contacted} contactados</span>
+        <span class="badge badge-qualified">${stats.clients.qualified} calificados</span>
+        <span class="badge badge-won">${stats.clients.won} ganados</span>
+      </div></div>
+    </div>
+    <div class="flex gap-3">
+      <a href="${API}/admin/export/clients" class="text-sm px-4 py-2 rounded-lg border" style="border-color:var(--line);color:var(--ink-dim)" target="_blank">📥 Exportar Leads CSV</a>
+      <a href="${API}/admin/export/candidates" class="text-sm px-4 py-2 rounded-lg border" style="border-color:var(--line);color:var(--ink-dim)" target="_blank">📥 Exportar Candidatos CSV</a>
+    </div>
+  `;
+}
+
+async function renderPipeline() {
+  const pipeline = await api('/admin/pipeline');
+  const main = document.getElementById('mainContent');
+  const cols = ['new','contacted','qualified','proposal','negotiation','won','lost'];
+  const labels = { new:'Nuevos', contacted:'Contactados', qualified:'Calificados', proposal:'Propuesta', negotiation:'Negociación', won:'Ganados', lost:'Perdidos' };
+
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Pipeline CRM</h1><div class="flex gap-4 overflow-x-auto pb-4" style="min-height:60vh">
+    ${cols.map(col => `
+      <div class="kanban-col">
+        <div class="text-xs uppercase tracking-wider mb-3 flex justify-between" style="color:var(--ink-mute)">
+          <span>${labels[col]}</span><span class="badge badge-${col}">${pipeline[col].length}</span>
+        </div>
+        ${pipeline[col].map(c => `
+          <div class="kanban-card" onclick="showClient('${c.id}')">
+            <div class="font-medium text-sm">${c.company_name}</div>
+            <div class="text-xs mt-1" style="color:var(--ink-mute)">${c.contact_name}</div>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="text-xs" style="color:var(--accent)">Score: ${c.lead_score}</span>
+              ${c.urgency === 'critical' ? '<span class="text-xs text-red-400">⚡ Crítico</span>' : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+async function renderClients() {
+  const data = await api('/clients');
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Leads (${data.pagination.total})</h1>
+    <div class="overflow-x-auto"><table class="table">
+      <thead><tr><th>Empresa</th><th>Contacto</th><th>Email</th><th>Servicios</th><th>Urgencia</th><th>Score</th><th>Estado</th><th>Fecha</th></tr></thead>
+      <tbody>${data.data.map(c => `
+        <tr><td class="font-medium">${c.company_name}</td><td>${c.contact_name}</td><td class="text-sm" style="color:var(--ink-dim)">${c.email}</td>
+        <td class="text-xs">${(c.services||[]).join(', ')}</td><td><span class="badge badge-${c.urgency === 'critical' ? 'lost' : 'new'}">${c.urgency}</span></td>
+        <td style="color:var(--accent)">${c.lead_score}</td><td><span class="badge badge-${c.pipeline_status}">${c.pipeline_status}</span></td>
+        <td class="text-xs" style="color:var(--ink-mute)">${new Date(c.created_at).toLocaleDateString()}</td></tr>
+      `).join('')}</tbody>
+    </table></div>`;
+}
+
+async function renderCandidates() {
+  const data = await api('/candidates');
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Candidatos (${data.pagination.total})</h1>
+    <div class="overflow-x-auto"><table class="table">
+      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Seniority</th><th>Skills</th><th>País</th><th>Inglés</th><th>Modalidad</th></tr></thead>
+      <tbody>${data.data.map(c => `
+        <tr><td class="font-medium">${c.name}</td><td class="text-sm" style="color:var(--ink-dim)">${c.email}</td>
+        <td>${c.desired_role}</td><td><span class="badge badge-new">${c.seniority}</span></td>
+        <td class="text-xs">${(c.skills||[]).slice(0,4).join(', ')}</td><td>${c.country||'-'}</td>
+        <td>${c.english||'-'}</td><td>${c.work_mode||'-'}</td></tr>
+      `).join('')}</tbody>
+    </table></div>`;
+}
+
+async function renderMeetings() {
+  const data = await api('/meetings');
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Reuniones (${data.length})</h1>
+    <div class="overflow-x-auto"><table class="table">
+      <thead><tr><th>Fecha</th><th>Hora</th><th>Empresa</th><th>Contacto</th><th>Estado</th><th>Link</th></tr></thead>
+      <tbody>${data.map(m => `
+        <tr><td>${m.date}</td><td>${m.start_time} - ${m.end_time}</td>
+        <td>${m.company_name||'-'}</td><td>${m.contact_name||'-'}</td>
+        <td><span class="badge badge-${m.status === 'scheduled' ? 'new' : m.status === 'completed' ? 'won' : 'contacted'}">${m.status}</span></td>
+        <td>${m.meet_link ? `<a href="${m.meet_link}" target="_blank" style="color:var(--accent)">Abrir</a>` : '-'}</td></tr>
+      `).join('')}</tbody>
+    </table></div>`;
+}
+
+async function renderMessages() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Mensajes enviados</h1><p class="text-dim">Los mensajes se muestran en el dashboard. Implementación de lista completa en desarrollo.</p>`;
+}
+
+async function renderAI() {
+  const data = await api('/ai/conversations');
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Conversaciones IA (${data.length})</h1>
+    <div class="overflow-x-auto"><table class="table">
+      <thead><tr><th>Visitante</th><th>Email</th><th>Servicio</th><th>Urgencia</th><th>Score</th><th>Mensajes</th><th>Fecha</th><th>Acción</th></tr></thead>
+      <tbody>${data.map(c => `
+        <tr><td>${c.visitor_name||'Anónimo'}</td><td class="text-sm" style="color:var(--ink-dim)">${c.visitor_email||'-'}</td>
+        <td>${c.detected_service||'-'}</td><td>${c.detected_urgency||'-'}</td>
+        <td style="color:var(--accent)">${c.lead_score||0}</td><td>${c.message_count}</td>
+        <td class="text-xs" style="color:var(--ink-mute)">${new Date(c.created_at).toLocaleDateString()}</td>
+        <td><button onclick="generateReport('${c.id}')" class="text-xs px-3 py-1 rounded" style="background:var(--accent-soft);color:var(--accent)">Generar reporte</button></td></tr>
+      `).join('')}</tbody>
+    </table></div>`;
+}
+
+async function renderSequences() {
+  const data = await api('/admin/sequences');
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Secuencias de automatización</h1>
+    ${data.map(s => `
+      <div class="stat-card mb-4">
+        <div class="flex justify-between items-center mb-3">
+          <div class="font-medium">${s.name}</div>
+          <span class="badge ${s.active ? 'badge-won' : 'badge-lost'}">${s.active ? 'Activa' : 'Inactiva'}</span>
+        </div>
+        <div class="text-sm" style="color:var(--ink-dim)">${s.description||''}</div>
+        <div class="mt-3 space-y-2">
+          ${(s.steps||[]).filter(st=>st).map(st => `
+            <div class="flex items-center gap-3 text-xs p-2 rounded" style="background:var(--bg)">
+              <span style="color:var(--accent)">Día ${st.delay_days}</span>
+              <span class="badge badge-new">${st.channel}</span>
+              <span style="color:var(--ink-dim)">${st.subject || st.body?.substring(0,60)+'...'}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}`;
+}
+
+async function renderInterviews() {
+  const data = await api('/admin/interviews');
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Solicitudes de entrevista (${data.length})</h1>
+    <div class="overflow-x-auto"><table class="table">
+      <thead><tr><th>Empresa</th><th>Contacto</th><th>Candidato</th><th>Rol</th><th>Estado</th><th>Fecha</th></tr></thead>
+      <tbody>${data.map(i => `
+        <tr><td class="font-medium">${i.company_name}</td><td>${i.contact_name}</td>
+        <td>${i.candidate_name}</td><td>${i.desired_role}</td>
+        <td><span class="badge badge-${i.status === 'pending' ? 'new' : 'won'}">${i.status}</span></td>
+        <td class="text-xs" style="color:var(--ink-mute)">${new Date(i.created_at).toLocaleDateString()}</td></tr>
+      `).join('')}</tbody>
+    </table></div>`;
+}
+
+async function generateReport(convId) {
+  const data = await api(`/ai/report/${convId}`, { method: 'POST' });
+  alert(JSON.stringify(data.report, null, 2));
+}
+
+function showClient(id) {
+  // Could open a modal with full client details
+  api(`/clients/${id}`).then(c => alert(JSON.stringify(c, null, 2)));
+}
+
+// Initial load
+loadTab('dashboard');
+</script>
+</body>
+</html>

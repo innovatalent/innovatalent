@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Panel Startup — Innova Talent</title>
+<link rel="icon" type="image/png" href="/assets/innova-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root { --bg: oklch(0.12 0.008 250); --bg-2: oklch(0.16 0.012 250); --bg-3: oklch(0.20 0.015 250); --ink: oklch(0.98 0.005 250); --ink-dim: oklch(0.72 0.01 250); --ink-mute: oklch(0.52 0.012 250); --line: oklch(0.28 0.012 250); --accent: oklch(0.74 0.14 230); --accent-soft: oklch(0.74 0.14 230 / 0.12); }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; margin: 0; }
+  .main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+  .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; background: var(--ink); color: var(--bg); font-weight: 500; font-size: 14px; border: none; cursor: pointer; }
+  .btn-ghost { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; background: none; color: var(--ink); font-size: 14px; border: 1px solid var(--line); cursor: pointer; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+  .form-input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; color: var(--ink); font-size: 14px; outline: none; }
+  .form-input:focus { border-color: var(--accent); }
+  .candidate-card { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 16px; transition: border-color .15s; }
+  .candidate-card:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<nav style="background:var(--bg-2);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;justify-content:space-between;align-items:center">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/"><img src="/assets/innova-logo.png" alt="" style="height:28px" /></a>
+    <span class="text-sm" style="color:var(--ink-mute)">Panel Startup</span>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <span class="text-sm" style="color:var(--ink-dim)" id="userEmail"></span>
+    <a href="/" class="text-sm" style="color:var(--ink-mute)">Inicio</a>
+    <button id="logoutBtn" class="text-sm" style="color:oklch(0.7 0.12 20);background:none;border:none;cursor:pointer">Salir</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div id="subStatus" class="card mb-6" style="display:none"></div>
+
+  <div id="searchSection" style="display:none">
+    <h2 class="text-xl font-semibold mb-4">Buscar candidatos</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <input id="fSkill" class="form-input" placeholder="Skill (React, Python...)" />
+      <select id="fSeniority" class="form-input"><option value="">Seniority</option><option>junior</option><option>mid</option><option>senior</option><option>lead</option></select>
+      <input id="fCountry" class="form-input" placeholder="País" />
+      <select id="fWorkMode" class="form-input"><option value="">Modalidad</option><option>remote</option><option>hybrid</option><option>onsite</option></select>
+    </div>
+    <button onclick="searchCandidates()" class="btn-primary mb-6">Buscar</button>
+    <div id="results"></div>
+  </div>
+
+  <div id="paywall" class="text-center py-16" style="display:none">
+    <div class="text-4xl mb-4">🔒</div>
+    <h2 class="text-2xl font-semibold mb-3">Accedé a nuestra base de talento</h2>
+    <p class="text-dim mb-6" style="max-width:400px;margin:0 auto">Por USD $10/mes podés buscar candidatos, filtrar por skills, ver perfiles, guardar favoritos y solicitar entrevistas.</p>
+    <button onclick="subscribe()" class="btn-primary">Suscribirme — USD $10/mes</button>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let token = localStorage.getItem('accessToken');
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+if (!token || user.role !== 'startup') { window.location.href = '/auth/login.html'; }
+document.getElementById('userEmail').textContent = user.email;
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch(`${API}/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+  localStorage.clear();
+  window.location.href = '/auth/login.html';
+});
+
+async function api(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, { ...opts, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers } });
+  if (res.status === 401) { localStorage.clear(); window.location.href = '/auth/login.html'; }
+  return res.json();
+}
+
+async function checkSubscription() {
+  const sub = await api('/payments/subscription');
+  if (sub && sub.status === 'active') {
+    document.getElementById('subStatus').style.display = 'block';
+    document.getElementById('subStatus').innerHTML = `<div class="flex justify-between items-center"><div><span style="color:var(--accent)">✓</span> Suscripción activa</div><div class="text-xs" style="color:var(--ink-mute)">Vence: ${new Date(sub.current_period_end).toLocaleDateString()}</div></div>`;
+    document.getElementById('searchSection').style.display = 'block';
+    document.getElementById('paywall').style.display = 'none';
+  } else {
+    document.getElementById('paywall').style.display = 'block';
+  }
+}
+
+async function subscribe() {
+  const data = await api('/payments/checkout', { method: 'POST' });
+  if (data.url) window.location.href = data.url;
+  else alert(data.error || 'Error al crear sesión de pago');
+}
+
+async function searchCandidates() {
+  const params = new URLSearchParams();
+  const skill = document.getElementById('fSkill').value;
+  const seniority = document.getElementById('fSeniority').value;
+  const country = document.getElementById('fCountry').value;
+  const workMode = document.getElementById('fWorkMode').value;
+  if (skill) params.set('skill', skill);
+  if (seniority) params.set('seniority', seniority);
+  if (country) params.set('country', country);
+  if (workMode) params.set('work_mode', workMode);
+
+  const data = await api(`/candidates?${params}`);
+  if (data.code === 'SUBSCRIPTION_REQUIRED') {
+    document.getElementById('searchSection').style.display = 'none';
+    document.getElementById('paywall').style.display = 'block';
+    return;
+  }
+
+  const results = document.getElementById('results');
+  if (!data.data?.length) { results.innerHTML = '<p class="text-dim">No se encontraron candidatos.</p>'; return; }
+
+  results.innerHTML = `<div class="text-sm mb-3" style="color:var(--ink-mute)">${data.pagination.total} candidatos encontrados</div>` +
+    data.data.map(c => `
+      <div class="candidate-card mb-3">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium">${c.name}</div>
+            <div class="text-sm" style="color:var(--ink-dim)">${c.desired_role} · ${c.seniority}</div>
+            <div class="text-xs mt-2" style="color:var(--ink-mute)">${c.country||''} ${c.city||''} · ${c.work_mode} · Inglés: ${c.english}</div>
+            <div class="flex flex-wrap gap-1 mt-2">${(c.skills||[]).map(s => `<span class="badge" style="background:var(--accent-soft);color:var(--accent)">${s}</span>`).join('')}</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="addFavorite('${c.id}')" class="btn-ghost" style="padding:8px 12px;font-size:12px">⭐ Favorito</button>
+            <button onclick="requestInterview('${c.id}')" class="btn-primary" style="padding:8px 12px;font-size:12px">Entrevista</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+}
+
+async function addFavorite(id) {
+  await api(`/candidates/${id}/favorite`, { method: 'POST' });
+  alert('Agregado a favoritos');
+}
+
+async function requestInterview(id) {
+  const notes = prompt('Notas para la entrevista (opcional):');
+  await api(`/candidates/${id}/interview`, { method: 'POST', body: JSON.stringify({ notes: notes || '' }) });
+  alert('Solicitud de entrevista enviada');
+}
+
+checkSubscription();
+</script>
+</body>
+</html>

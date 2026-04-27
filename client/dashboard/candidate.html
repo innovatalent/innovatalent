@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mi Perfil — Innova Talent</title>
+<link rel="icon" type="image/png" href="/assets/innova-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root { --bg: oklch(0.12 0.008 250); --bg-2: oklch(0.16 0.012 250); --ink: oklch(0.98 0.005 250); --ink-dim: oklch(0.72 0.01 250); --ink-mute: oklch(0.52 0.012 250); --line: oklch(0.28 0.012 250); --accent: oklch(0.74 0.14 230); --accent-soft: oklch(0.74 0.14 230 / 0.12); }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; margin: 0; }
+  .main { max-width: 700px; margin: 0 auto; padding: 32px 24px; }
+  .form-input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; color: var(--ink); font-size: 14px; outline: none; }
+  .form-input:focus { border-color: var(--accent); }
+  .form-label { display: block; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-dim); margin-bottom: 6px; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 10px; background: var(--ink); color: var(--bg); font-weight: 500; font-size: 14px; border: none; cursor: pointer; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<nav style="background:var(--bg-2);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;justify-content:space-between;align-items:center">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/"><img src="/assets/innova-logo.png" alt="" style="height:28px" /></a>
+    <span class="text-sm" style="color:var(--ink-mute)">Mi Perfil</span>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <a href="/" class="text-sm" style="color:var(--ink-mute)">Inicio</a>
+    <button id="logoutBtn" class="text-sm" style="color:oklch(0.7 0.12 20);background:none;border:none;cursor:pointer">Salir</button>
+  </div>
+</nav>
+
+<div class="main">
+  <h1 class="text-2xl font-semibold mb-2">Completá tu perfil</h1>
+  <p class="text-sm mb-8" style="color:var(--ink-dim)">Tu información será visible para startups que buscan talento</p>
+
+  <div id="error" class="hidden bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-3 mb-4 text-sm"></div>
+  <div id="success" class="hidden bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg p-3 mb-4 text-sm"></div>
+
+  <form id="profileForm" enctype="multipart/form-data" class="space-y-4">
+    <div class="grid grid-cols-2 gap-4">
+      <div><label class="form-label">Nombre *</label><input id="name" class="form-input" required /></div>
+      <div><label class="form-label">Email *</label><input id="email" type="email" class="form-input" required /></div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div><label class="form-label">WhatsApp</label><input id="whatsapp" class="form-input" placeholder="+54..." /></div>
+      <div><label class="form-label">LinkedIn</label><input id="linkedin" class="form-input" placeholder="https://linkedin.com/in/..." /></div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div><label class="form-label">País</label><input id="country" class="form-input" /></div>
+      <div><label class="form-label">Ciudad</label><input id="city" class="form-input" /></div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div><label class="form-label">Rol deseado *</label><input id="desired_role" class="form-input" required placeholder="Backend Developer" /></div>
+      <div><label class="form-label">Seniority *</label>
+        <select id="seniority" class="form-input" required><option value="junior">Junior</option><option value="mid" selected>Mid</option><option value="senior">Senior</option><option value="lead">Lead</option><option value="principal">Principal</option></select>
+      </div>
+    </div>
+    <div>
+      <label class="form-label">Skills (separados por coma)</label>
+      <input id="skills" class="form-input" placeholder="React, Node.js, PostgreSQL, Docker" />
+    </div>
+    <div class="grid grid-cols-3 gap-4">
+      <div><label class="form-label">Inglés</label>
+        <select id="english" class="form-input"><option value="none">Ninguno</option><option value="basic">Básico</option><option value="intermediate" selected>Intermedio</option><option value="advanced">Avanzado</option><option value="native">Nativo</option></select>
+      </div>
+      <div><label class="form-label">Salario pretendido (USD)</label><input id="salary_expectation" class="form-input" placeholder="$3,000" /></div>
+      <div><label class="form-label">Modalidad</label>
+        <select id="work_mode" class="form-input"><option value="remote">Remoto</option><option value="hybrid">Híbrido</option><option value="onsite">Presencial</option></select>
+      </div>
+    </div>
+    <div><label class="form-label">Disponibilidad</label><input id="availability" class="form-input" placeholder="Inmediata / En 2 semanas" /></div>
+    <div><label class="form-label">CV (PDF)</label><input id="cv" type="file" accept=".pdf,.doc,.docx" class="form-input" style="padding:8px" /></div>
+    <button type="submit" id="submitBtn" class="btn-primary">Guardar perfil</button>
+  </form>
+</div>
+
+<script>
+const token = localStorage.getItem('accessToken');
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+if (!token || user.role !== 'candidate') { window.location.href = '/auth/login.html'; }
+
+document.getElementById('email').value = user.email || '';
+document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = '/auth/login.html'; });
+
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  document.getElementById('error').classList.add('hidden');
+  document.getElementById('success').classList.add('hidden');
+
+  const formData = new FormData();
+  const fields = ['name','email','whatsapp','linkedin','country','city','desired_role','seniority','skills','english','salary_expectation','availability','work_mode'];
+  fields.forEach(f => { const val = document.getElementById(f).value; if (val) formData.append(f, val); });
+  const cv = document.getElementById('cv').files[0];
+  if (cv) formData.append('cv', cv);
+
+  try {
+    const res = await fetch('/api/candidates', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.details?.join(', '));
+    document.getElementById('success').textContent = 'Perfil guardado exitosamente';
+    document.getElementById('success').classList.remove('hidden');
+  } catch (err) {
+    document.getElementById('error').textContent = err.message;
+    document.getElementById('error').classList.remove('hidden');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar perfil';
+  }
+});
+</script>
+</body>
+</html>

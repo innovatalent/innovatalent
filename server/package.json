@@ -1,0 +1,32 @@
+{
+  "name": "innovatalent-saas",
+  "version": "1.0.0",
+  "description": "Innova Talent Labs SaaS Platform",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "db:init": "node src/db/init.js",
+    "db:seed": "node src/db/seed.js",
+    "jobs:run": "node src/jobs/runner.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "pg": "^8.13.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.4.0",
+    "multer": "^1.4.5-lts.1",
+    "resend": "^4.0.0",
+    "stripe": "^16.12.0",
+    "twilio": "^5.3.0",
+    "@anthropic-ai/sdk": "^0.32.0",
+    "uuid": "^10.0.0",
+    "sanitize-html": "^2.13.0",
+    "node-cron": "^3.0.3",
+    "csv-stringify": "^6.5.1",
+    "dotenv": "^16.4.5"
+  }
+}
