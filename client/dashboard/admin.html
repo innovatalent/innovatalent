@@ -8,294 +8,610 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
-  :root { --bg: oklch(0.12 0.008 250); --bg-2: oklch(0.16 0.012 250); --bg-3: oklch(0.20 0.015 250); --ink: oklch(0.98 0.005 250); --ink-dim: oklch(0.72 0.01 250); --ink-mute: oklch(0.52 0.012 250); --line: oklch(0.28 0.012 250); --accent: oklch(0.74 0.14 230); --accent-soft: oklch(0.74 0.14 230 / 0.12); }
-  html, body { background: var(--bg); color: var(--ink); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; margin: 0; }
-  .sidebar { width: 240px; background: var(--bg-2); border-right: 1px solid var(--line); height: 100vh; position: fixed; left: 0; top: 0; padding: 20px 0; overflow-y: auto; }
-  .sidebar a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--ink-dim); text-decoration: none; font-size: 14px; transition: all .15s; }
-  .sidebar a:hover, .sidebar a.active { color: var(--ink); background: var(--accent-soft); }
-  .main { margin-left: 240px; padding: 24px 32px; min-height: 100vh; }
-  .stat-card { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-  .stat-num { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-  .table { width: 100%; border-collapse: collapse; }
-  .table th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-mute); border-bottom: 1px solid var(--line); }
-  .table td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid oklch(0.28 0.012 250 / 0.5); }
-  .table tr:hover td { background: var(--accent-soft); }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
-  .badge-new { background: oklch(0.74 0.14 230 / 0.15); color: oklch(0.74 0.14 230); }
-  .badge-contacted { background: oklch(0.74 0.14 60 / 0.15); color: oklch(0.80 0.12 60); }
-  .badge-qualified { background: oklch(0.74 0.14 150 / 0.15); color: oklch(0.75 0.14 150); }
-  .badge-won { background: oklch(0.74 0.14 150 / 0.2); color: oklch(0.85 0.14 150); }
-  .badge-lost { background: oklch(0.5 0.1 20 / 0.2); color: oklch(0.7 0.12 20); }
-  .kanban-col { min-width: 220px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; flex-shrink: 0; }
-  .kanban-card { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
-  .kanban-card:hover { border-color: var(--accent); }
-  .tab { padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; color: var(--ink-dim); background: none; border: none; transition: all .15s; }
-  .tab.active { background: var(--accent-soft); color: var(--ink); }
+  :root{--bg:#0f1117;--bg2:#16181f;--bg3:#1c1f27;--ink:#f0f1f3;--dim:#9ca3af;--mute:#6b7280;--line:#2a2d37;--accent:#6366f1;--accent2:#818cf8;--accent-soft:rgba(99,102,241,.12);--green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Geist',system-ui,sans-serif;height:100%;overflow:hidden}
+  .font-mono{font-family:'Geist Mono',monospace}
+
+  /* Layout */
+  .layout{display:flex;height:100vh}
+  .sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+  .main{flex:1;overflow-y:auto;padding:24px 28px}
+
+  /* Sidebar */
+  .sidebar .logo{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .sidebar .logo img{height:26px}
+  .sidebar .logo span{font-weight:600;font-size:14px}
+  .nav-group{padding:8px 0}
+  .nav-group-label{padding:4px 18px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mute)}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:8px 18px;font-size:13px;color:var(--dim);cursor:pointer;transition:all .12s;border:none;background:none;width:100%;text-align:left}
+  .nav-item:hover{color:var(--ink);background:var(--accent-soft)}
+  .nav-item.active{color:var(--accent2);background:var(--accent-soft)}
+  .nav-item .badge-count{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+
+  /* Cards */
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .kpi{text-align:center}
+  .kpi-value{font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .kpi-label{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  .kpi-delta{font-size:11px;margin-top:4px}
+  .kpi-delta.up{color:var(--green)}
+  .kpi-delta.down{color:var(--red)}
+
+  /* Table */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0}
+  .tbl th{text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2);z-index:1}
+  .tbl td{padding:10px 12px;font-size:13px;border-bottom:1px solid rgba(42,45,55,.5)}
+  .tbl tr:hover td{background:var(--accent-soft)}
+  .tbl-wrap{max-height:500px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+
+  /* Badge */
+  .badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+  .b-new{background:rgba(99,102,241,.15);color:var(--accent2)}
+  .b-contacted{background:rgba(234,179,8,.12);color:var(--yellow)}
+  .b-qualified{background:rgba(34,197,94,.12);color:var(--green)}
+  .b-proposal{background:rgba(249,115,22,.12);color:var(--orange)}
+  .b-won{background:rgba(34,197,94,.2);color:var(--green)}
+  .b-lost{background:rgba(239,68,68,.12);color:var(--red)}
+  .b-email{background:rgba(99,102,241,.12);color:var(--accent2)}
+  .b-whatsapp{background:rgba(34,197,94,.12);color:var(--green)}
+  .b-urgent{background:rgba(239,68,68,.15);color:var(--red)}
+  .b-high{background:rgba(249,115,22,.12);color:var(--orange)}
+  .b-open{background:rgba(99,102,241,.12);color:var(--accent2)}
+  .b-draft{background:rgba(107,114,128,.2);color:var(--dim)}
+  .b-sent{background:rgba(99,102,241,.12);color:var(--accent2)}
+  .b-accepted{background:rgba(34,197,94,.15);color:var(--green)}
+  .b-todo{background:rgba(99,102,241,.12);color:var(--accent2)}
+  .b-in_progress{background:rgba(234,179,8,.12);color:var(--yellow)}
+  .b-done{background:rgba(34,197,94,.12);color:var(--green)}
+  .b-active{background:rgba(34,197,94,.15);color:var(--green)}
+
+  /* Kanban */
+  .kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;min-height:65vh}
+  .kanban-col{min-width:210px;max-width:210px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;flex-shrink:0;display:flex;flex-direction:column}
+  .kanban-col-header{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);padding:4px 6px 8px;display:flex;justify-content:space-between;align-items:center}
+  .kanban-cards{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+  .k-card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:grab;transition:border-color .12s,transform .12s}
+  .k-card:hover{border-color:var(--accent)}
+  .k-card.dragging{opacity:.5;transform:scale(.96)}
+
+  /* Inbox */
+  .inbox-layout{display:flex;height:calc(100vh - 80px);gap:0}
+  .inbox-list{width:320px;border-right:1px solid var(--line);overflow-y:auto;flex-shrink:0}
+  .inbox-thread{flex:1;display:flex;flex-direction:column}
+  .inbox-item{padding:12px 16px;border-bottom:1px solid rgba(42,45,55,.5);cursor:pointer;transition:background .1s}
+  .inbox-item:hover,.inbox-item.active{background:var(--accent-soft)}
+  .inbox-item.unread{border-left:3px solid var(--accent)}
+  .thread-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .thread-msg{max-width:75%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
+  .thread-msg.inbound{background:var(--bg3);align-self:flex-start;border-bottom-left-radius:4px}
+  .thread-msg.outbound{background:var(--accent-soft);color:var(--ink);align-self:flex-end;border-bottom-right-radius:4px}
+  .thread-compose{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px}
+  .thread-compose input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;color:var(--ink);font-size:13px;outline:none}
+  .thread-compose input:focus{border-color:var(--accent)}
+  .thread-compose button{background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;cursor:pointer;font-weight:600;font-size:13px}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--ink);transition:all .12s}
+  .btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent2)}
+
+  /* Form */
+  .input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 12px;color:var(--ink);font-size:13px;outline:none;font-family:inherit}
+  .input:focus{border-color:var(--accent)}
+  .label{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);margin-bottom:4px}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center}
+  .modal{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:24px;width:min(560px,92vw);max-height:85vh;overflow-y:auto}
+  .modal h3{font-size:18px;font-weight:600;margin-bottom:16px}
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+
+  /* Chart container */
+  .chart-wrap{position:relative;height:220px}
+
+  /* Tabs */
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:16px}
+  .tab{padding:8px 14px;font-size:13px;color:var(--dim);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .12s}
+  .tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+  .tab:hover{color:var(--ink)}
 </style>
 </head>
 <body>
-<nav class="sidebar">
-  <div style="padding:0 20px 20px;border-bottom:1px solid var(--line);margin-bottom:12px">
-    <img src="/assets/innova-logo.png" alt="Logo" style="height:32px" />
-    <div class="text-xs mt-2" style="color:var(--ink-mute)">Panel Admin</div>
-  </div>
-  <a href="#" class="active" data-tab="dashboard">📊 Dashboard</a>
-  <a href="#" data-tab="pipeline">🔄 Pipeline</a>
-  <a href="#" data-tab="clients">👥 Leads</a>
-  <a href="#" data-tab="candidates">💼 Candidatos</a>
-  <a href="#" data-tab="meetings">📅 Reuniones</a>
-  <a href="#" data-tab="messages">✉️ Mensajes</a>
-  <a href="#" data-tab="ai">🤖 IA Conversaciones</a>
-  <a href="#" data-tab="sequences">⚡ Automatización</a>
-  <a href="#" data-tab="interviews">🎯 Entrevistas</a>
-  <div style="position:absolute;bottom:20px;left:0;right:0;padding:0 20px">
-    <a href="/" style="font-size:13px">← Volver al sitio</a>
-    <a href="#" id="logoutBtn" style="font-size:13px;color:oklch(0.7 0.12 20)">Cerrar sesión</a>
-  </div>
-</nav>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="/assets/innova-logo.png" alt="" />
+      <span>Innova Talent</span>
+    </div>
 
-<div class="main" id="mainContent">
-  <div id="loading" class="text-center py-20 text-dim">Cargando...</div>
+    <div class="nav-group">
+      <div class="nav-group-label">Principal</div>
+      <button class="nav-item active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="nav-item" data-tab="inbox">💬 Inbox <span class="badge-count" id="unreadBadge" style="display:none">0</span></button>
+      <button class="nav-item" data-tab="pipeline">🔄 Pipeline</button>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">CRM</div>
+      <button class="nav-item" data-tab="clients">👥 Leads</button>
+      <button class="nav-item" data-tab="candidates">💼 Candidatos</button>
+      <button class="nav-item" data-tab="proposals">📄 Propuestas</button>
+      <button class="nav-item" data-tab="meetings">📅 Reuniones</button>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Automatización</div>
+      <button class="nav-item" data-tab="workflows">⚡ Workflows</button>
+      <button class="nav-item" data-tab="sequences">📨 Secuencias</button>
+      <button class="nav-item" data-tab="forms">📝 Forms</button>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Inteligencia</div>
+      <button class="nav-item" data-tab="ai">🤖 IA Chats</button>
+      <button class="nav-item" data-tab="analytics">📈 Analytics</button>
+      <button class="nav-item" data-tab="tasks">✅ Tareas</button>
+    </div>
+
+    <div style="margin-top:auto;padding:12px 18px;border-top:1px solid var(--line)">
+      <div class="text-xs" style="color:var(--mute)" id="adminEmail"></div>
+      <button class="nav-item" style="padding:6px 0;font-size:12px" onclick="logout()">↩ Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main" id="main"></main>
 </div>
 
 <script>
 const API = '/api';
 let token = localStorage.getItem('accessToken');
 const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-if (!token || user.role !== 'admin') { window.location.href = '/auth/login.html'; }
+if (!token || user.role !== 'admin') window.location.href = '/auth/login.html';
+document.getElementById('adminEmail').textContent = user.email;
 
 async function api(path, opts = {}) {
-  const res = await fetch(`${API}${path}`, {
-    ...opts,
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...opts.headers },
-  });
+  const headers = { 'Authorization': `Bearer ${token}`, ...opts.headers };
+  if (!(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+  const res = await fetch(`${API}${path}`, { ...opts, headers });
   if (res.status === 401) {
-    const refresh = localStorage.getItem('refreshToken');
-    if (refresh) {
-      const r = await fetch(`${API}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: refresh }) });
-      if (r.ok) {
-        const data = await r.json();
-        token = data.accessToken;
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        return api(path, opts);
-      }
-    }
-    window.location.href = '/auth/login.html';
+    const r = await fetch(`${API}/auth/refresh`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({refreshToken:localStorage.getItem('refreshToken')}) });
+    if (r.ok) { const d = await r.json(); token = d.accessToken; localStorage.setItem('accessToken',d.accessToken); localStorage.setItem('refreshToken',d.refreshToken); return api(path,opts); }
+    return logout();
   }
   return res.json();
 }
 
+function logout() { fetch(`${API}/auth/logout`,{method:'POST',headers:{'Authorization':`Bearer ${token}`}}).finally(()=>{localStorage.clear();window.location.href='/auth/login.html';}); }
+
+function $(sel, ctx=document){return ctx.querySelector(sel)}
+function $$(sel,ctx=document){return [...ctx.querySelectorAll(sel)]}
+function h(tag,attrs={},...children){const el=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='style'&&typeof v==='object')Object.assign(el.style,v);else if(k.startsWith('on'))el.addEventListener(k.slice(2).toLowerCase(),v);else el.setAttribute(k,v)}for(const c of children){if(typeof c==='string')el.appendChild(document.createTextNode(c));else if(c)el.appendChild(c)}return el}
+
 // Tab navigation
 let currentTab = 'dashboard';
-document.querySelectorAll('.sidebar a[data-tab]').forEach(a => {
-  a.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
-    a.classList.add('active');
-    currentTab = a.dataset.tab;
-    loadTab(currentTab);
+$$('.nav-item[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    render(currentTab);
   });
 });
 
-document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-  e.preventDefault();
-  await fetch(`${API}/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-  localStorage.clear();
-  window.location.href = '/auth/login.html';
-});
+// ==== RENDER FUNCTIONS ====
 
-async function loadTab(tab) {
-  const main = document.getElementById('mainContent');
-  main.innerHTML = '<div class="text-center py-20 text-dim">Cargando...</div>';
-
-  switch (tab) {
-    case 'dashboard': return renderDashboard();
-    case 'pipeline': return renderPipeline();
-    case 'clients': return renderClients();
-    case 'candidates': return renderCandidates();
-    case 'meetings': return renderMeetings();
-    case 'messages': return renderMessages();
-    case 'ai': return renderAI();
-    case 'sequences': return renderSequences();
-    case 'interviews': return renderInterviews();
-  }
+async function render(tab) {
+  const main = $('#main');
+  main.innerHTML = '<div style="text-align:center;padding:80px;color:var(--mute)">Cargando...</div>';
+  try {
+    switch(tab) {
+      case 'dashboard': return renderDashboard();
+      case 'inbox': return renderInbox();
+      case 'pipeline': return renderPipeline();
+      case 'clients': return renderClients();
+      case 'candidates': return renderCandidates();
+      case 'proposals': return renderProposals();
+      case 'meetings': return renderMeetings();
+      case 'workflows': return renderWorkflows();
+      case 'sequences': return renderSequences();
+      case 'forms': return renderForms();
+      case 'ai': return renderAI();
+      case 'analytics': return renderAnalytics();
+      case 'tasks': return renderTasks();
+    }
+  } catch(e) { main.innerHTML = `<div style="color:var(--red);padding:40px">Error: ${e.message}</div>`; }
 }
+
+// ==== DASHBOARD ====
 
 async function renderDashboard() {
-  const stats = await api('/admin/stats');
-  const main = document.getElementById('mainContent');
+  const kpis = await api('/analytics/kpis');
+  const main = $('#main');
   main.innerHTML = `
-    <h1 class="text-2xl font-semibold mb-6">Dashboard</h1>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Total Leads</div><div class="stat-num mt-1">${stats.clients.total}</div><div class="text-xs mt-1" style="color:var(--accent)">+${stats.clients.last_7_days} esta semana</div></div>
-      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Candidatos</div><div class="stat-num mt-1">${stats.candidates.total}</div></div>
-      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Suscripciones</div><div class="stat-num mt-1">${stats.subscriptions.active}</div><div class="text-xs mt-1" style="color:var(--ink-mute)">${stats.subscriptions.total} total</div></div>
-      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Revenue (USD)</div><div class="stat-num mt-1">$${stats.payments.revenue.toLocaleString()}</div><div class="text-xs mt-1" style="color:var(--accent)">$${stats.payments.revenue_30d.toLocaleString()} este mes</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h1 style="font-size:22px;font-weight:600">Dashboard</h1>
+      <div style="display:flex;gap:8px">
+        <a href="${API}/admin/export/clients" target="_blank" class="btn">📥 Leads CSV</a>
+        <a href="${API}/admin/export/candidates" target="_blank" class="btn">📥 Candidatos CSV</a>
+      </div>
     </div>
-    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Reuniones</div><div class="stat-num mt-1">${stats.meetings.upcoming}</div><div class="text-xs mt-1" style="color:var(--ink-mute)">próximas</div></div>
-      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Mensajes enviados</div><div class="stat-num mt-1">${stats.messages.sent}</div><div class="text-xs mt-1 text-red-400">${stats.messages.failed} fallidos</div></div>
-      <div class="stat-card"><div class="text-xs uppercase tracking-wider" style="color:var(--ink-mute)">Pipeline</div><div class="flex gap-2 mt-2 flex-wrap">
-        <span class="badge badge-new">${stats.clients.new} nuevos</span>
-        <span class="badge badge-contacted">${stats.clients.contacted} contactados</span>
-        <span class="badge badge-qualified">${stats.clients.qualified} calificados</span>
-        <span class="badge badge-won">${stats.clients.won} ganados</span>
-      </div></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px">
+      <div class="card kpi"><div class="kpi-value" style="color:var(--accent)">${kpis.total_leads}</div><div class="kpi-label">Total leads</div><div class="kpi-delta up">+${kpis.leads_7d} esta semana</div></div>
+      <div class="card kpi"><div class="kpi-value">${kpis.total_candidates}</div><div class="kpi-label">Candidatos</div></div>
+      <div class="card kpi"><div class="kpi-value" style="color:var(--green)">${kpis.active_subs}</div><div class="kpi-label">Suscripciones</div></div>
+      <div class="card kpi"><div class="kpi-value" style="color:var(--green)">$${kpis.total_revenue.toLocaleString()}</div><div class="kpi-label">Revenue total</div><div class="kpi-delta up">$${kpis.revenue_30d} este mes</div></div>
+      <div class="card kpi"><div class="kpi-value">${kpis.upcoming_meetings}</div><div class="kpi-label">Reuniones prox</div></div>
+      <div class="card kpi"><div class="kpi-value" style="color:${kpis.open_conversations > 0 ? 'var(--yellow)' : 'var(--dim)'}">${kpis.open_conversations}</div><div class="kpi-label">Conv. abiertas</div>${kpis.unread_messages > 0 ? `<div class="kpi-delta down">${kpis.unread_messages} sin leer</div>` : ''}</div>
+      <div class="card kpi"><div class="kpi-value">${kpis.pending_tasks}</div><div class="kpi-label">Tareas pend.</div></div>
+      <div class="card kpi"><div class="kpi-value">${kpis.win_rate || 0}%</div><div class="kpi-label">Win rate</div></div>
     </div>
-    <div class="flex gap-3">
-      <a href="${API}/admin/export/clients" class="text-sm px-4 py-2 rounded-lg border" style="border-color:var(--line);color:var(--ink-dim)" target="_blank">📥 Exportar Leads CSV</a>
-      <a href="${API}/admin/export/candidates" class="text-sm px-4 py-2 rounded-lg border" style="border-color:var(--line);color:var(--ink-dim)" target="_blank">📥 Exportar Candidatos CSV</a>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="card"><div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--dim)">Leads últimos 30 días</div><div class="chart-wrap"><canvas id="chartLeads"></canvas></div></div>
+      <div class="card"><div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--dim)">Revenue mensual</div><div class="chart-wrap"><canvas id="chartRevenue"></canvas></div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card"><div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--dim)">Pipeline</div><div class="chart-wrap"><canvas id="chartPipeline"></canvas></div></div>
+      <div class="card"><div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--dim)">Servicios solicitados</div><div class="chart-wrap"><canvas id="chartServices"></canvas></div></div>
     </div>
   `;
+
+  const analytics = await api('/analytics/dashboard');
+  const colors = {new:'#6366f1',contacted:'#eab308',qualified:'#22c55e',proposal:'#f97316',negotiation:'#3b82f6',won:'#10b981',lost:'#ef4444'};
+  const svcColors = {recruitment:'#6366f1',automation:'#f97316',data:'#22c55e',web_dev:'#3b82f6',ai:'#a855f7'};
+  const svcLabels = {recruitment:'Reclutamiento',automation:'Automatización',data:'Data/BI',web_dev:'Desarrollo Web',ai:'IA'};
+
+  const chartCfg = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(42,45,55,.5)'},ticks:{color:'#6b7280',font:{size:10}}},y:{grid:{color:'rgba(42,45,55,.5)'},ticks:{color:'#6b7280',font:{size:10}}}}};
+
+  new Chart($('#chartLeads'),{type:'bar',data:{labels:analytics.leads_over_time.map(d=>d.date.slice(5)),datasets:[{data:analytics.leads_over_time.map(d=>d.count),backgroundColor:'rgba(99,102,241,.6)',borderRadius:4}]},options:chartCfg});
+
+  new Chart($('#chartRevenue'),{type:'line',data:{labels:analytics.revenue.map(d=>d.month),datasets:[{data:analytics.revenue.map(d=>d.revenue/100),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.3,pointRadius:3}]},options:chartCfg});
+
+  new Chart($('#chartPipeline'),{type:'doughnut',data:{labels:analytics.pipeline.map(p=>p.status),datasets:[{data:analytics.pipeline.map(p=>p.count),backgroundColor:analytics.pipeline.map(p=>colors[p.status]||'#6b7280')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#9ca3af',font:{size:11}}}}}});
+
+  new Chart($('#chartServices'),{type:'bar',data:{labels:analytics.top_services.map(s=>svcLabels[s.service]||s.service),datasets:[{data:analytics.top_services.map(s=>s.count),backgroundColor:analytics.top_services.map(s=>svcColors[s.service]||'#6366f1'),borderRadius:4}]},options:{...chartCfg,indexAxis:'y'}});
 }
 
-async function renderPipeline() {
-  const pipeline = await api('/admin/pipeline');
-  const main = document.getElementById('mainContent');
-  const cols = ['new','contacted','qualified','proposal','negotiation','won','lost'];
-  const labels = { new:'Nuevos', contacted:'Contactados', qualified:'Calificados', proposal:'Propuesta', negotiation:'Negociación', won:'Ganados', lost:'Perdidos' };
+// ==== INBOX (Unified Conversations) ====
 
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Pipeline CRM</h1><div class="flex gap-4 overflow-x-auto pb-4" style="min-height:60vh">
-    ${cols.map(col => `
-      <div class="kanban-col">
-        <div class="text-xs uppercase tracking-wider mb-3 flex justify-between" style="color:var(--ink-mute)">
-          <span>${labels[col]}</span><span class="badge badge-${col}">${pipeline[col].length}</span>
-        </div>
-        ${pipeline[col].map(c => `
-          <div class="kanban-card" onclick="showClient('${c.id}')">
-            <div class="font-medium text-sm">${c.company_name}</div>
-            <div class="text-xs mt-1" style="color:var(--ink-mute)">${c.contact_name}</div>
-            <div class="flex items-center gap-2 mt-2">
-              <span class="text-xs" style="color:var(--accent)">Score: ${c.lead_score}</span>
-              ${c.urgency === 'critical' ? '<span class="text-xs text-red-400">⚡ Crítico</span>' : ''}
-            </div>
-          </div>
-        `).join('')}
+let activeConvId = null;
+async function renderInbox() {
+  const data = await api('/conversations?status=all');
+  const main = $('#main');
+  main.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h1 style="font-size:22px;font-weight:600">Inbox</h1>
+      <div style="display:flex;gap:6px">
+        <button class="btn tab-filter active" data-f="all">Todas</button>
+        <button class="btn tab-filter" data-f="open">Abiertas</button>
+        <button class="btn tab-filter" data-f="closed">Cerradas</button>
       </div>
-    `).join('')}
+    </div>
+    <div class="inbox-layout" style="border:1px solid var(--line);border-radius:10px;overflow:hidden">
+      <div class="inbox-list" id="inboxList">
+        ${data.data.length ? data.data.map(c => inboxItemHtml(c)).join('') : '<div style="padding:40px;text-align:center;color:var(--mute)">Sin conversaciones</div>'}
+      </div>
+      <div class="inbox-thread" id="inboxThread">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--mute)">Seleccioná una conversación</div>
+      </div>
+    </div>
+  `;
+  $$('.tab-filter').forEach(b => b.addEventListener('click', async ()=> {
+    $$('.tab-filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    const d = await api(`/conversations?status=${b.dataset.f}`);
+    $('#inboxList').innerHTML = d.data.map(c=>inboxItemHtml(c)).join('') || '<div style="padding:40px;text-align:center;color:var(--mute)">Sin conversaciones</div>';
+    bindInboxItems();
+  }));
+  bindInboxItems();
+}
+
+function inboxItemHtml(c) {
+  return `<div class="inbox-item ${c.unread_count > 0 ? 'unread' : ''}" data-id="${c.id}">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:500;font-size:13px">${c.contact_name || c.company_name || 'Sin nombre'}</span>
+      <span style="font-size:10px;color:var(--mute)">${timeAgo(c.last_message_at)}</span>
+    </div>
+    <div style="font-size:11px;color:var(--mute);margin-top:2px">${c.contact_email || ''}</div>
+    <div style="font-size:12px;color:var(--dim);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.last_message || ''}</div>
+    <div style="display:flex;gap:4px;margin-top:4px">
+      <span class="badge b-${c.channel}">${c.channel}</span>
+      <span class="badge b-${c.status}">${c.status}</span>
+    </div>
   </div>`;
 }
 
+function bindInboxItems() {
+  $$('.inbox-item').forEach(el => el.addEventListener('click', () => openConversation(el.dataset.id)));
+}
+
+async function openConversation(id) {
+  activeConvId = id;
+  $$('.inbox-item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
+  const conv = await api(`/conversations/${id}`);
+  const thread = $('#inboxThread');
+  thread.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:500;font-size:14px">${conv.contact_name || conv.company_name}</div>
+        <div style="font-size:11px;color:var(--mute)">${conv.contact_email} · ${conv.channel} · <span class="badge b-${conv.pipeline_status || 'new'}">${conv.pipeline_status || 'new'}</span></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn" onclick="api('/conversations/${id}',{method:'PATCH',body:JSON.stringify({status:'closed'})}).then(()=>renderInbox())">Cerrar</button>
+      </div>
+    </div>
+    <div class="thread-messages" id="threadMsgs">
+      ${conv.messages.map(m => `<div class="thread-msg ${m.direction}">
+        <div style="font-size:10px;color:var(--mute);margin-bottom:4px">${m.sender_name || m.sender_type} · ${new Date(m.created_at).toLocaleString()}</div>
+        ${m.body}
+      </div>`).join('')}
+    </div>
+    <div class="thread-compose">
+      <input id="msgInput" placeholder="Escribir mensaje..." onkeydown="if(event.key==='Enter')sendMsg()" />
+      <button onclick="sendMsg()">Enviar</button>
+    </div>
+  `;
+  const msgs = $('#threadMsgs'); msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendMsg() {
+  const input = $('#msgInput'); const body = input.value.trim(); if (!body) return;
+  input.value = '';
+  await api(`/conversations/${activeConvId}/messages`, {method:'POST', body: JSON.stringify({body})});
+  openConversation(activeConvId);
+}
+
+// ==== PIPELINE ====
+
+async function renderPipeline() {
+  const pipeline = await api('/admin/pipeline');
+  const cols = ['new','contacted','qualified','proposal','negotiation','won','lost'];
+  const labels = {new:'Nuevos',contacted:'Contactados',qualified:'Calificados',proposal:'Propuesta',negotiation:'Negociación',won:'Ganados',lost:'Perdidos'};
+  const main = $('#main');
+
+  main.innerHTML = `<h1 style="font-size:22px;font-weight:600;margin-bottom:16px">Pipeline CRM</h1>
+    <div class="kanban" id="kanban">
+      ${cols.map(col => `
+        <div class="kanban-col" data-status="${col}" ondragover="event.preventDefault()" ondrop="dropCard(event,'${col}')">
+          <div class="kanban-col-header"><span>${labels[col]}</span><span class="badge b-${col}">${pipeline[col].length}</span></div>
+          <div class="kanban-cards">
+            ${pipeline[col].map(c => `
+              <div class="k-card" draggable="true" ondragstart="dragCard(event,'${c.id}')" data-id="${c.id}">
+                <div style="font-weight:500;font-size:12px">${c.company_name}</div>
+                <div style="font-size:11px;color:var(--mute);margin-top:2px">${c.contact_name}</div>
+                <div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+                  <span style="font-size:10px;color:var(--accent)">Score: ${c.lead_score}</span>
+                  ${c.urgency === 'critical' ? '<span class="badge b-urgent">⚡</span>' : ''}
+                  ${c.urgency === 'high' ? '<span class="badge b-high">!</span>' : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+let draggedCardId = null;
+function dragCard(e, id) { draggedCardId = id; e.dataTransfer.effectAllowed = 'move'; }
+async function dropCard(e, newStatus) {
+  e.preventDefault(); if (!draggedCardId) return;
+  await api(`/clients/${draggedCardId}/status`, {method:'PATCH', body: JSON.stringify({pipeline_status: newStatus})});
+  draggedCardId = null;
+  renderPipeline();
+}
+
+// ==== CLIENTS ====
 async function renderClients() {
   const data = await api('/clients');
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Leads (${data.pagination.total})</h1>
-    <div class="overflow-x-auto"><table class="table">
-      <thead><tr><th>Empresa</th><th>Contacto</th><th>Email</th><th>Servicios</th><th>Urgencia</th><th>Score</th><th>Estado</th><th>Fecha</th></tr></thead>
-      <tbody>${data.data.map(c => `
-        <tr><td class="font-medium">${c.company_name}</td><td>${c.contact_name}</td><td class="text-sm" style="color:var(--ink-dim)">${c.email}</td>
-        <td class="text-xs">${(c.services||[]).join(', ')}</td><td><span class="badge badge-${c.urgency === 'critical' ? 'lost' : 'new'}">${c.urgency}</span></td>
-        <td style="color:var(--accent)">${c.lead_score}</td><td><span class="badge badge-${c.pipeline_status}">${c.pipeline_status}</span></td>
-        <td class="text-xs" style="color:var(--ink-mute)">${new Date(c.created_at).toLocaleDateString()}</td></tr>
-      `).join('')}</tbody>
-    </table></div>`;
+  const main = $('#main');
+  main.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h1 style="font-size:22px;font-weight:600">Leads (${data.pagination.total})</h1></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Empresa</th><th>Contacto</th><th>Email</th><th>Servicios</th><th>Urgencia</th><th>Score</th><th>Estado</th><th>Fecha</th></tr></thead>
+    <tbody>${data.data.map(c=>`<tr><td style="font-weight:500">${c.company_name}</td><td>${c.contact_name}</td><td style="color:var(--dim);font-size:12px">${c.email}</td>
+    <td style="font-size:11px">${(c.services||[]).join(', ')}</td><td><span class="badge b-${c.urgency === 'critical'?'urgent':c.urgency === 'high'?'high':'new'}">${c.urgency}</span></td>
+    <td style="color:var(--accent)">${c.lead_score}</td><td><span class="badge b-${c.pipeline_status}">${c.pipeline_status}</span></td>
+    <td style="color:var(--mute);font-size:11px">${new Date(c.created_at).toLocaleDateString()}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
+// ==== CANDIDATES ====
 async function renderCandidates() {
   const data = await api('/candidates');
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Candidatos (${data.pagination.total})</h1>
-    <div class="overflow-x-auto"><table class="table">
-      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Seniority</th><th>Skills</th><th>País</th><th>Inglés</th><th>Modalidad</th></tr></thead>
-      <tbody>${data.data.map(c => `
-        <tr><td class="font-medium">${c.name}</td><td class="text-sm" style="color:var(--ink-dim)">${c.email}</td>
-        <td>${c.desired_role}</td><td><span class="badge badge-new">${c.seniority}</span></td>
-        <td class="text-xs">${(c.skills||[]).slice(0,4).join(', ')}</td><td>${c.country||'-'}</td>
-        <td>${c.english||'-'}</td><td>${c.work_mode||'-'}</td></tr>
-      `).join('')}</tbody>
-    </table></div>`;
+  const main = $('#main');
+  main.innerHTML = `<h1 style="font-size:22px;font-weight:600;margin-bottom:16px">Candidatos (${data.pagination.total})</h1>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Seniority</th><th>Skills</th><th>País</th><th>Inglés</th><th>Modalidad</th></tr></thead>
+    <tbody>${data.data.map(c=>`<tr><td style="font-weight:500">${c.name}</td><td style="color:var(--dim);font-size:12px">${c.email}</td>
+    <td>${c.desired_role}</td><td><span class="badge b-new">${c.seniority}</span></td>
+    <td style="font-size:11px">${(c.skills||[]).slice(0,4).join(', ')}</td><td>${c.country||'-'}</td><td>${c.english||'-'}</td><td>${c.work_mode||'-'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
+// ==== PROPOSALS ====
+async function renderProposals() {
+  const data = await api('/proposals');
+  const main = $('#main');
+  main.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h1 style="font-size:22px;font-weight:600">Propuestas (${data.pagination.total})</h1>
+    <button class="btn btn-primary" onclick="showNewProposal()">+ Nueva propuesta</button></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Título</th><th>Empresa</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead>
+    <tbody>${data.data.map(p=>`<tr><td class="font-mono" style="color:var(--mute)">${p.proposal_number}</td><td style="font-weight:500">${p.title}</td>
+    <td>${p.company_name||'-'}</td><td style="color:var(--green)">$${(p.total/100).toFixed(2)}</td>
+    <td><span class="badge b-${p.status}">${p.status}</span></td>
+    <td style="color:var(--mute);font-size:11px">${new Date(p.created_at).toLocaleDateString()}</td>
+    <td>${p.status==='draft'?`<button class="btn" onclick="sendProposal('${p.id}')">Enviar</button>`:''}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+async function sendProposal(id) { await api(`/proposals/${id}/send`,{method:'POST'}); renderProposals(); }
+
+// ==== MEETINGS ====
 async function renderMeetings() {
   const data = await api('/meetings');
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Reuniones (${data.length})</h1>
-    <div class="overflow-x-auto"><table class="table">
-      <thead><tr><th>Fecha</th><th>Hora</th><th>Empresa</th><th>Contacto</th><th>Estado</th><th>Link</th></tr></thead>
-      <tbody>${data.map(m => `
-        <tr><td>${m.date}</td><td>${m.start_time} - ${m.end_time}</td>
-        <td>${m.company_name||'-'}</td><td>${m.contact_name||'-'}</td>
-        <td><span class="badge badge-${m.status === 'scheduled' ? 'new' : m.status === 'completed' ? 'won' : 'contacted'}">${m.status}</span></td>
-        <td>${m.meet_link ? `<a href="${m.meet_link}" target="_blank" style="color:var(--accent)">Abrir</a>` : '-'}</td></tr>
-      `).join('')}</tbody>
-    </table></div>`;
+  const main = $('#main');
+  main.innerHTML = `<h1 style="font-size:22px;font-weight:600;margin-bottom:16px">Reuniones (${data.length})</h1>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Hora</th><th>Empresa</th><th>Contacto</th><th>Estado</th><th>Link</th></tr></thead>
+    <tbody>${data.map(m=>`<tr><td>${m.date}</td><td>${m.start_time}-${m.end_time}</td>
+    <td>${m.company_name||'-'}</td><td>${m.contact_name||'-'}</td>
+    <td><span class="badge b-${m.status==='scheduled'?'new':m.status==='completed'?'won':'contacted'}">${m.status}</span></td>
+    <td>${m.meet_link?`<a href="${m.meet_link}" target="_blank" style="color:var(--accent)">Abrir</a>`:'-'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
-async function renderMessages() {
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Mensajes enviados</h1><p class="text-dim">Los mensajes se muestran en el dashboard. Implementación de lista completa en desarrollo.</p>`;
+// ==== WORKFLOWS ====
+async function renderWorkflows() {
+  const data = await api('/workflows');
+  const main = $('#main');
+  main.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h1 style="font-size:22px;font-weight:600">Workflows (${data.length})</h1>
+    <button class="btn btn-primary" onclick="alert('TODO: Visual workflow builder')">+ Nuevo workflow</button></div>
+    ${data.map(w=>`<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-weight:500">${w.name}</div><div style="font-size:12px;color:var(--mute);margin-top:2px">Trigger: ${w.trigger} · ${w.run_count} ejecuciones</div></div>
+      <span class="badge b-${w.active?'active':'draft'}">${w.active?'Activo':'Inactivo'}</span></div>
+      ${w.steps?.length?`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${w.steps.map((s,i)=>`<span class="badge b-new">Paso ${i+1}: ${s.type||s.action||'acción'}</span>`).join('')}</div>`:''}
+    </div>`).join('')||'<div style="text-align:center;padding:40px;color:var(--mute)">No hay workflows configurados</div>'}`;
 }
 
-async function renderAI() {
-  const data = await api('/ai/conversations');
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Conversaciones IA (${data.length})</h1>
-    <div class="overflow-x-auto"><table class="table">
-      <thead><tr><th>Visitante</th><th>Email</th><th>Servicio</th><th>Urgencia</th><th>Score</th><th>Mensajes</th><th>Fecha</th><th>Acción</th></tr></thead>
-      <tbody>${data.map(c => `
-        <tr><td>${c.visitor_name||'Anónimo'}</td><td class="text-sm" style="color:var(--ink-dim)">${c.visitor_email||'-'}</td>
-        <td>${c.detected_service||'-'}</td><td>${c.detected_urgency||'-'}</td>
-        <td style="color:var(--accent)">${c.lead_score||0}</td><td>${c.message_count}</td>
-        <td class="text-xs" style="color:var(--ink-mute)">${new Date(c.created_at).toLocaleDateString()}</td>
-        <td><button onclick="generateReport('${c.id}')" class="text-xs px-3 py-1 rounded" style="background:var(--accent-soft);color:var(--accent)">Generar reporte</button></td></tr>
-      `).join('')}</tbody>
-    </table></div>`;
-}
-
+// ==== SEQUENCES ====
 async function renderSequences() {
   const data = await api('/admin/sequences');
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Secuencias de automatización</h1>
-    ${data.map(s => `
-      <div class="stat-card mb-4">
-        <div class="flex justify-between items-center mb-3">
-          <div class="font-medium">${s.name}</div>
-          <span class="badge ${s.active ? 'badge-won' : 'badge-lost'}">${s.active ? 'Activa' : 'Inactiva'}</span>
-        </div>
-        <div class="text-sm" style="color:var(--ink-dim)">${s.description||''}</div>
-        <div class="mt-3 space-y-2">
-          ${(s.steps||[]).filter(st=>st).map(st => `
-            <div class="flex items-center gap-3 text-xs p-2 rounded" style="background:var(--bg)">
-              <span style="color:var(--accent)">Día ${st.delay_days}</span>
-              <span class="badge badge-new">${st.channel}</span>
-              <span style="color:var(--ink-dim)">${st.subject || st.body?.substring(0,60)+'...'}</span>
+  const main = $('#main');
+  main.innerHTML = `<h1 style="font-size:22px;font-weight:600;margin-bottom:16px">Secuencias de automatización</h1>
+    ${data.map(s=>`<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:500">${s.name}</span><span class="badge b-${s.active?'active':'draft'}">${s.active?'Activa':'Inactiva'}</span></div>
+      <div style="font-size:12px;color:var(--dim)">${s.description||''}</div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+        ${(s.steps||[]).filter(st=>st).map(st=>`<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:6px 8px;background:var(--bg);border-radius:6px">
+          <span class="badge b-${st.channel}">${st.channel}</span><span style="color:var(--accent)">Día ${st.delay_days}</span>
+          <span style="color:var(--dim)">${st.subject||st.body?.substring(0,50)+'...'}</span></div>`).join('')}
+      </div></div>`).join('')}`;
+}
+
+// ==== FORMS ====
+async function renderForms() {
+  const data = await api('/forms');
+  const main = $('#main');
+  main.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h1 style="font-size:22px;font-weight:600">Forms (${data.length})</h1>
+    <button class="btn btn-primary" onclick="alert('TODO: Form builder')">+ Nuevo formulario</button></div>
+    ${data.length ? data.map(f=>`<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:500">${f.name}</div><div style="font-size:12px;color:var(--mute);margin-top:2px">Slug: /${f.slug} · ${f.submission_count} envíos</div></div>
+        <span class="badge b-${f.active?'active':'draft'}">${f.active?'Activo':'Inactivo'}</span></div>
+    </div>`).join('') : '<div style="text-align:center;padding:40px;color:var(--mute)">No hay formularios</div>'}`;
+}
+
+// ==== AI CHATS ====
+async function renderAI() {
+  const data = await api('/ai/conversations');
+  const main = $('#main');
+  main.innerHTML = `<h1 style="font-size:22px;font-weight:600;margin-bottom:16px">Conversaciones IA (${data.length})</h1>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Visitante</th><th>Email</th><th>Servicio</th><th>Urgencia</th><th>Score</th><th>Msgs</th><th>Fecha</th><th></th></tr></thead>
+    <tbody>${data.map(c=>`<tr><td>${c.visitor_name||'Anónimo'}</td><td style="color:var(--dim);font-size:12px">${c.visitor_email||'-'}</td>
+    <td>${c.detected_service||'-'}</td><td>${c.detected_urgency||'-'}</td><td style="color:var(--accent)">${c.lead_score||0}</td>
+    <td>${c.message_count}</td><td style="color:var(--mute);font-size:11px">${new Date(c.created_at).toLocaleDateString()}</td>
+    <td><button class="btn" onclick="genReport('${c.id}')">Reporte</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+async function genReport(id) { const d = await api(`/ai/report/${id}`,{method:'POST'}); alert(JSON.stringify(d.report,null,2)); }
+
+// ==== ANALYTICS ====
+async function renderAnalytics() {
+  const analytics = await api('/analytics/dashboard');
+  const funnel = analytics.conversion_funnel;
+  const main = $('#main');
+  main.innerHTML = `<h1 style="font-size:22px;font-weight:600;margin-bottom:16px">Analytics</h1>
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:500;color:var(--dim);margin-bottom:12px">Funnel de conversión</div>
+      <div style="display:flex;gap:8px;align-items:end">
+        ${[{l:'Leads',v:funnel.total_leads},{l:'Contactados',v:funnel.contacted},{l:'Calificados',v:funnel.qualified},{l:'Propuesta',v:funnel.proposal},{l:'Ganados',v:funnel.won}].map((s,i,a)=>{
+          const pct = a[0].v ? Math.round(s.v / a[0].v * 100) : 0;
+          return `<div style="flex:1;text-align:center"><div style="background:var(--accent);opacity:${1 - i*0.15};border-radius:6px;height:${Math.max(pct*2,20)}px;margin:0 auto;width:80%"></div>
+          <div style="font-size:20px;font-weight:700;margin-top:8px">${s.v}</div>
+          <div style="font-size:10px;color:var(--mute)">${s.l}</div>
+          <div style="font-size:10px;color:var(--accent)">${pct}%</div></div>`;
+        }).join('')}
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:13px">Win rate: <strong style="color:var(--green)">${funnel.win_rate || 0}%</strong> · Perdidos: <strong style="color:var(--red)">${funnel.lost}</strong></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card"><div style="font-size:13px;font-weight:500;color:var(--dim);margin-bottom:12px">Revenue mensual</div><div class="chart-wrap"><canvas id="chartRev2"></canvas></div></div>
+      <div class="card"><div style="font-size:13px;font-weight:500;color:var(--dim);margin-bottom:12px">Leads por día (30d)</div><div class="chart-wrap"><canvas id="chartLeads2"></canvas></div></div>
+    </div>`;
+
+  const chartCfg = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(42,45,55,.5)'},ticks:{color:'#6b7280',font:{size:10}}},y:{grid:{color:'rgba(42,45,55,.5)'},ticks:{color:'#6b7280',font:{size:10}}}}};
+  new Chart($('#chartRev2'),{type:'line',data:{labels:analytics.revenue.map(d=>d.month),datasets:[{data:analytics.revenue.map(d=>d.revenue/100),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.3}]},options:chartCfg});
+  new Chart($('#chartLeads2'),{type:'bar',data:{labels:analytics.leads_over_time.map(d=>d.date.slice(5)),datasets:[{data:analytics.leads_over_time.map(d=>d.count),backgroundColor:'rgba(99,102,241,.6)',borderRadius:4}]},options:chartCfg});
+}
+
+// ==== TASKS ====
+async function renderTasks() {
+  const data = await api('/tasks');
+  const main = $('#main');
+  const byStatus = {todo:[],in_progress:[],done:[]};
+  data.forEach(t => { if(byStatus[t.status]) byStatus[t.status].push(t); });
+  const labels = {todo:'Por hacer',in_progress:'En progreso',done:'Completadas'};
+
+  main.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h1 style="font-size:22px;font-weight:600">Tareas (${data.length})</h1>
+    <button class="btn btn-primary" onclick="showNewTask()">+ Nueva tarea</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      ${Object.entries(byStatus).map(([status, tasks]) => `
+        <div class="card">
+          <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:10px;display:flex;justify-content:space-between">
+            <span>${labels[status]}</span><span class="badge b-${status}">${tasks.length}</span></div>
+          ${tasks.map(t => `
+            <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:6px">
+              <div style="font-weight:500;font-size:13px">${t.title}</div>
+              <div style="display:flex;gap:4px;margin-top:6px">
+                <span class="badge b-${t.priority === 'urgent' ? 'urgent' : t.priority === 'high' ? 'high' : 'new'}">${t.priority}</span>
+                ${t.due_date ? `<span style="font-size:10px;color:var(--mute)">📅 ${t.due_date}</span>` : ''}
+                ${t.company_name ? `<span style="font-size:10px;color:var(--dim)">${t.company_name}</span>` : ''}
+              </div>
+              <div style="display:flex;gap:4px;margin-top:6px">
+                ${status !== 'done' ? `<button class="btn" style="font-size:10px;padding:3px 8px" onclick="updateTask('${t.id}','${status === 'todo' ? 'in_progress' : 'done'}')">→</button>` : ''}
+              </div>
             </div>
           `).join('')}
         </div>
-      </div>
-    `).join('')}`;
+      `).join('')}
+    </div>`;
 }
 
-async function renderInterviews() {
-  const data = await api('/admin/interviews');
-  const main = document.getElementById('mainContent');
-  main.innerHTML = `<h1 class="text-2xl font-semibold mb-6">Solicitudes de entrevista (${data.length})</h1>
-    <div class="overflow-x-auto"><table class="table">
-      <thead><tr><th>Empresa</th><th>Contacto</th><th>Candidato</th><th>Rol</th><th>Estado</th><th>Fecha</th></tr></thead>
-      <tbody>${data.map(i => `
-        <tr><td class="font-medium">${i.company_name}</td><td>${i.contact_name}</td>
-        <td>${i.candidate_name}</td><td>${i.desired_role}</td>
-        <td><span class="badge badge-${i.status === 'pending' ? 'new' : 'won'}">${i.status}</span></td>
-        <td class="text-xs" style="color:var(--ink-mute)">${new Date(i.created_at).toLocaleDateString()}</td></tr>
-      `).join('')}</tbody>
-    </table></div>`;
+async function updateTask(id, status) { await api(`/tasks/${id}`, {method:'PATCH', body:JSON.stringify({status})}); renderTasks(); }
+
+async function showNewTask() {
+  const title = prompt('Título de la tarea:'); if (!title) return;
+  const priority = prompt('Prioridad (low/medium/high/urgent):') || 'medium';
+  await api('/tasks', {method:'POST', body:JSON.stringify({title, priority})});
+  renderTasks();
 }
 
-async function generateReport(convId) {
-  const data = await api(`/ai/report/${convId}`, { method: 'POST' });
-  alert(JSON.stringify(data.report, null, 2));
+// ==== HELPERS ====
+function timeAgo(date) {
+  const diff = (Date.now() - new Date(date).getTime()) / 1000;
+  if (diff < 60) return 'ahora';
+  if (diff < 3600) return `${Math.floor(diff/60)}m`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+  return `${Math.floor(diff/86400)}d`;
 }
 
-function showClient(id) {
-  // Could open a modal with full client details
-  api(`/clients/${id}`).then(c => alert(JSON.stringify(c, null, 2)));
-}
-
-// Initial load
-loadTab('dashboard');
+// Initial load + check unread
+(async () => {
+  render('dashboard');
+  try {
+    const conv = await api('/conversations?status=open');
+    const unread = conv.data?.reduce((s,c) => s + (c.unread_count||0), 0) || 0;
+    if (unread > 0) { const badge = $('#unreadBadge'); badge.textContent = unread; badge.style.display = 'inline'; }
+  } catch {}
+})();
 </script>
 </body>
 </html>

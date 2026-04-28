@@ -45,6 +45,13 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/meetings', require('./routes/meetings'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/conversations', require('./routes/conversations'));
+app.use('/api/proposals', require('./routes/proposals'));
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/workflows', require('./routes/workflows'));
+app.use('/api/forms', require('./routes/forms'));
+app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/notes', require('./routes/notes'));
 
 // Health check
 app.get('/api/health', async (req, res) => {
