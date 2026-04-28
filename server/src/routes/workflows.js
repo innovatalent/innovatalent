@@ -51,6 +51,24 @@ router.post('/', authenticate, authorize('admin'), validateBody({
 });
 
 // Update workflow
+router.patch('/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, description, trigger, trigger_conditions, steps, active } = req.body;
+    const { rows } = await db.query(
+      `UPDATE workflows SET name = COALESCE($1, name), description = COALESCE($2, description),
+       trigger = COALESCE($3, trigger), trigger_conditions = COALESCE($4, trigger_conditions),
+       steps = COALESCE($5, steps), active = COALESCE($6, active)
+       WHERE id = $7 RETURNING *`,
+      [name, description, trigger, trigger_conditions ? JSON.stringify(trigger_conditions) : null,
+       steps ? JSON.stringify(steps) : null, active, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { name, description, trigger, trigger_conditions, steps, active } = req.body;

@@ -294,6 +294,7 @@ async function renderInbox() {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h1 style="font-size:22px;font-weight:600">Inbox</h1>
       <div style="display:flex;gap:6px">
+        <button class="btn btn-primary" onclick="showNewConversation()">+ Nueva</button>
         <button class="btn tab-filter active" data-f="all">Todas</button>
         <button class="btn tab-filter" data-f="open">Abiertas</button>
         <button class="btn tab-filter" data-f="closed">Cerradas</button>
@@ -370,6 +371,37 @@ async function sendMsg() {
   input.value = '';
   await api(`/conversations/${activeConvId}/messages`, {method:'POST', body: JSON.stringify({body})});
   openConversation(activeConvId);
+}
+
+function showNewConversation() {
+  const overlay = h('div',{class:'modal-overlay',onClick:e=>{if(e.target===overlay)overlay.remove()}});
+  const modal = h('div',{class:'modal',style:{width:'min(440px,92vw)'}});
+  modal.innerHTML = `
+    <h3>Nueva Conversación</h3>
+    <div style="display:grid;gap:12px">
+      <div><label class="label">Cliente (buscar)</label><input class="input" id="convClient" placeholder="Buscar por nombre o email..."></div>
+      <div><label class="label">Canal</label><select class="input" id="convChannel"><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="internal">Interno</option></select></div>
+      <div><label class="label">Asunto</label><input class="input" id="convSubject" placeholder="Asunto de la conversación"></div>
+      <div><label class="label">Primer mensaje</label><textarea class="input" id="convBody" rows="3" placeholder="Escribir mensaje..."></textarea></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="createConversation()">Enviar</button>
+      </div>
+    </div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  initClientPicker('convClient');
+}
+
+async function createConversation() {
+  const contact_id = $('#convClient')?.value?.trim();
+  const channel = $('#convChannel')?.value;
+  const subject = $('#convSubject')?.value?.trim();
+  const message = $('#convBody')?.value?.trim();
+  if (!contact_id || !message) return alert('Cliente y mensaje son requeridos');
+  await api('/conversations', {method:'POST', body:JSON.stringify({contact_id, channel, subject, message})});
+  document.querySelector('.modal-overlay')?.remove();
+  renderInbox();
 }
 
 // ==== PIPELINE ====
@@ -453,6 +485,72 @@ async function renderProposals() {
 
 async function sendProposal(id) { await api(`/proposals/${id}/send`,{method:'POST'}); renderProposals(); }
 
+let proposalItems = [];
+function showNewProposal() {
+  proposalItems = [{description:'', quantity:1, unit_price:0}];
+  const overlay = h('div',{class:'modal-overlay',onClick:e=>{if(e.target===overlay)overlay.remove()}});
+  const modal = h('div',{class:'modal',style:{width:'min(640px,92vw)'}});
+  modal.innerHTML = `
+    <h3>Nueva Propuesta</h3>
+    <div style="display:grid;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label class="label">Título</label><input class="input" id="propTitle" placeholder="Propuesta de servicio"></div>
+        <div><label class="label">ID Cliente</label><input class="input" id="propClient" placeholder="UUID del cliente"></div>
+      </div>
+      <div><label class="label">Notas</label><textarea class="input" id="propNotes" rows="2" placeholder="Términos y condiciones..."></textarea></div>
+      <div>
+        <label class="label">Líneas de la propuesta</label>
+        <div id="propItemsArea"></div>
+        <button class="btn" style="margin-top:8px" onclick="proposalItems.push({description:'',quantity:1,unit_price:0});renderProposalItems()">+ Agregar línea</button>
+      </div>
+      <div style="text-align:right;font-size:14px;font-weight:600" id="propTotal">Total: $0.00</div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+        <button class="btn" onclick="saveProposal('draft')">Guardar borrador</button>
+        <button class="btn btn-primary" onclick="saveProposal('send')">Crear y enviar</button>
+      </div>
+    </div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  renderProposalItems();
+  initClientPicker('propClient');
+}
+
+function removeProposalItem(i) { proposalItems.splice(i,1); renderProposalItems(); }
+
+function renderProposalItems() {
+  const area = $('#propItemsArea');
+  if (!area) return;
+  area.innerHTML = proposalItems.map((item,i) => `
+    <div style="display:grid;grid-template-columns:2fr 80px 100px 40px;gap:6px;align-items:center;margin-bottom:6px">
+      <input class="input" placeholder="Descripción" value="${item.description}" onchange="proposalItems[${i}].description=this.value">
+      <input class="input" type="number" min="1" placeholder="Cant." value="${item.quantity}" onchange="proposalItems[${i}].quantity=+this.value;updatePropTotal()">
+      <input class="input" type="number" min="0" step="0.01" placeholder="Precio" value="${item.unit_price/100||''}" onchange="proposalItems[${i}].unit_price=Math.round(this.value*100);updatePropTotal()">
+      <button class="btn" style="padding:4px 8px;color:var(--red)" onclick="removeProposalItem(${i})">✕</button>
+    </div>
+  `).join('');
+  updatePropTotal();
+}
+
+function updatePropTotal() {
+  const total = proposalItems.reduce((s,i)=>s+(i.quantity*(i.unit_price||0)),0);
+  const el = $('#propTotal');
+  if (el) el.textContent = `Total: $${(total/100).toFixed(2)}`;
+}
+
+async function saveProposal(mode) {
+  const title = $('#propTitle')?.value?.trim();
+  const client_id = $('#propClient')?.value?.trim() || null;
+  const notes = $('#propNotes')?.value?.trim() || null;
+  if (!title) return alert('Ingresa un título');
+  if (!proposalItems.some(i=>i.description)) return alert('Agrega al menos una línea con descripción');
+  const items = proposalItems.filter(i=>i.description);
+  const res = await api('/proposals', {method:'POST', body:JSON.stringify({title, client_id, notes, items})});
+  if (mode === 'send' && res.id) await api(`/proposals/${res.id}/send`, {method:'POST'});
+  document.querySelector('.modal-overlay')?.remove();
+  renderProposals();
+}
+
 // ==== MEETINGS ====
 async function renderMeetings() {
   const data = await api('/meetings');
@@ -471,12 +569,89 @@ async function renderWorkflows() {
   const main = $('#main');
   main.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
     <h1 style="font-size:22px;font-weight:600">Workflows (${data.length})</h1>
-    <button class="btn btn-primary" onclick="alert('TODO: Visual workflow builder')">+ Nuevo workflow</button></div>
+    <button class="btn btn-primary" onclick="showWorkflowBuilder()">+ Nuevo workflow</button></div>
     ${data.map(w=>`<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center">
       <div><div style="font-weight:500">${w.name}</div><div style="font-size:12px;color:var(--mute);margin-top:2px">Trigger: ${w.trigger} · ${w.run_count} ejecuciones</div></div>
-      <span class="badge b-${w.active?'active':'draft'}">${w.active?'Activo':'Inactivo'}</span></div>
-      ${w.steps?.length?`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${w.steps.map((s,i)=>`<span class="badge b-new">Paso ${i+1}: ${s.type||s.action||'acción'}</span>`).join('')}</div>`:''}
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="badge b-${w.active?'active':'draft'}">${w.active?'Activo':'Inactivo'}</span>
+        <button class="btn" style="font-size:10px;padding:4px 8px" onclick="toggleWorkflow('${w.id}',${!w.active})">${w.active?'Pausar':'Activar'}</button>
+        <button class="btn" style="font-size:10px;padding:4px 8px;color:var(--red)" onclick="deleteWorkflow('${w.id}')">✕</button>
+      </div></div>
+      ${w.steps?.length?`<div style="margin-top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">${w.steps.map((s,i)=>`<div style="display:flex;align-items:center;gap:4px"><span class="badge b-new">Paso ${i+1}: ${s.type} ${s.type==='send_email'?'✉️':s.type==='send_whatsapp'?'📱':s.type==='wait'?'⏳':s.type==='update_status'?'🔄':'⚡'}</span>${i<w.steps.length-1?'<span style="color:var(--mute)">→</span>':''}</div>`).join('')}</div>`:''}
     </div>`).join('')||'<div style="text-align:center;padding:40px;color:var(--mute)">No hay workflows configurados</div>'}`;
+}
+
+async function toggleWorkflow(id, active) { await api(`/workflows/${id}`,{method:'PATCH',body:JSON.stringify({active})}); renderWorkflows(); }
+async function deleteWorkflow(id) { if(!confirm('¿Eliminar este workflow?')) return; await api(`/workflows/${id}`,{method:'DELETE'}); renderWorkflows(); }
+
+let wfSteps = [];
+function showWorkflowBuilder() {
+  const triggers = ['lead_created','status_changed','form_submitted','manual'];
+  const stepTypes = [{v:'send_email',l:'Enviar Email'},{v:'send_whatsapp',l:'Enviar WhatsApp'},{v:'wait',l:'Esperar (días)'},{v:'update_status',l:'Cambiar Estado'},{v:'webhook',l:'Webhook'}];
+  wfSteps = [];
+
+  const overlay = h('div',{class:'modal-overlay',onClick:e=>{if(e.target===overlay)overlay.remove()}});
+  const modal = h('div',{class:'modal',style:{width:'min(640px,92vw)'}});
+  modal.innerHTML = `
+    <h3>Nuevo Workflow</h3>
+    <div style="display:grid;gap:12px">
+      <div><label class="label">Nombre</label><input class="input" id="wfName" placeholder="Ej: Onboarding de lead"></div>
+      <div><label class="label">Trigger</label><select class="input" id="wfTrigger">${triggers.map(t=>`<option value="${t}">${t.replace(/_/g,' ')}</option>`).join('')}</select></div>
+      <div>
+        <label class="label">Pasos del workflow</label>
+        <div id="wfStepsArea" style="min-height:60px;border:1px dashed var(--line);border-radius:8px;padding:12px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${stepTypes.map(s=>`<button class="btn" onclick="addWfStep('${s.v}')">${s.l}</button>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveWorkflow()">Crear workflow</button>
+      </div>
+    </div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function addWfStep(type) {
+  const step = {type, config:{}};
+  wfSteps.push(step);
+  renderWfSteps();
+}
+
+function removeWfStep(i) { wfSteps.splice(i,1); renderWfSteps(); }
+
+function renderWfSteps() {
+  const area = $('#wfStepsArea');
+  if (!area) return;
+  if (!wfSteps.length) { area.innerHTML = '<div style="text-align:center;color:var(--mute);font-size:12px;padding:16px">Agrega pasos usando los botones</div>'; return; }
+  area.innerHTML = wfSteps.map((s,i) => {
+    const icon = s.type==='send_email'?'✉️':s.type==='send_whatsapp'?'📱':s.type==='wait'?'⏳':s.type==='update_status'?'🔄':'🔗';
+    let configHtml = '';
+    if (s.type === 'send_email') configHtml = `<input class="input" style="margin-top:6px" placeholder="Asunto del email" onchange="wfSteps[${i}].config.subject=this.value"><input class="input" style="margin-top:4px" placeholder="Cuerpo (usa {{name}}, {{company}})" onchange="wfSteps[${i}].config.body=this.value">`;
+    else if (s.type === 'send_whatsapp') configHtml = `<input class="input" style="margin-top:6px" placeholder="Mensaje WhatsApp" onchange="wfSteps[${i}].config.message=this.value">`;
+    else if (s.type === 'wait') configHtml = `<input class="input" style="margin-top:6px;width:80px" type="number" placeholder="Días" min="1" value="1" onchange="wfSteps[${i}].config.days=+this.value">`;
+    else if (s.type === 'update_status') configHtml = `<select class="input" style="margin-top:6px" onchange="wfSteps[${i}].config.status=this.value"><option value="contacted">Contactado</option><option value="qualified">Calificado</option><option value="proposal">Propuesta</option><option value="negotiation">Negociación</option><option value="won">Ganado</option></select>`;
+    else if (s.type === 'webhook') configHtml = `<input class="input" style="margin-top:6px" placeholder="URL del webhook" onchange="wfSteps[${i}].config.url=this.value">`;
+    return `<div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:500">${icon} Paso ${i+1}: ${s.type.replace(/_/g,' ')}</span>
+        <button class="btn" style="font-size:10px;padding:2px 6px;color:var(--red)" onclick="removeWfStep(${i})">✕</button>
+      </div>
+      ${configHtml}
+      ${i < wfSteps.length - 1 ? '<div style="text-align:center;color:var(--mute);margin-top:6px">↓</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+async function saveWorkflow() {
+  const name = $('#wfName')?.value?.trim();
+  const trigger = $('#wfTrigger')?.value;
+  if (!name) return alert('Ingresa un nombre');
+  if (!wfSteps.length) return alert('Agrega al menos un paso');
+  await api('/workflows', {method:'POST', body:JSON.stringify({name, trigger, steps:wfSteps, active:true})});
+  document.querySelector('.modal-overlay')?.remove();
+  renderWorkflows();
 }
 
 // ==== SEQUENCES ====
@@ -501,12 +676,109 @@ async function renderForms() {
   const main = $('#main');
   main.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
     <h1 style="font-size:22px;font-weight:600">Forms (${data.length})</h1>
-    <button class="btn btn-primary" onclick="alert('TODO: Form builder')">+ Nuevo formulario</button></div>
+    <button class="btn btn-primary" onclick="showFormBuilder()">+ Nuevo formulario</button></div>
     ${data.length ? data.map(f=>`<div class="card" style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-weight:500">${f.name}</div><div style="font-size:12px;color:var(--mute);margin-top:2px">Slug: /${f.slug} · ${f.submission_count} envíos</div></div>
-        <span class="badge b-${f.active?'active':'draft'}">${f.active?'Activo':'Inactivo'}</span></div>
-    </div>`).join('') : '<div style="text-align:center;padding:40px;color:var(--mute)">No hay formularios</div>'}`;
+        <div>
+          <div style="font-weight:500">${f.name}</div>
+          <div style="font-size:12px;color:var(--mute);margin-top:2px">Slug: /${f.slug} · ${f.submission_count} envíos</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:4px">Campos: ${(f.fields||[]).map(fi=>fi.label).join(', ')||'—'}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="badge b-${f.active?'active':'draft'}">${f.active?'Activo':'Inactivo'}</span>
+          <button class="btn" style="font-size:10px;padding:4px 8px" onclick="copyFormUrl('${f.slug}')">🔗 Link</button>
+          <button class="btn" style="font-size:10px;padding:4px 8px" onclick="viewSubmissions('${f.id}','${f.name}')">📋</button>
+          <button class="btn" style="font-size:10px;padding:4px 8px;color:var(--red)" onclick="deleteForm('${f.id}')">✕</button>
+        </div>
+      </div>
+    </div>`).join('') : '<div style="text-align:center;padding:40px;color:var(--mute)">No hay formularios creados</div>'}`;
+}
+
+function copyFormUrl(slug) { navigator.clipboard.writeText(`${window.location.origin}/api/forms/s/${slug}`); alert('Link copiado al portapapeles'); }
+async function deleteForm(id) { if(!confirm('¿Eliminar este formulario?')) return; await api(`/forms/${id}`,{method:'DELETE'}); renderForms(); }
+
+async function viewSubmissions(formId, formName) {
+  const data = await api(`/forms/${formId}`);
+  const subs = data.submissions || [];
+  const overlay = h('div',{class:'modal-overlay',onClick:e=>{if(e.target===overlay)overlay.remove()}});
+  const modal = h('div',{class:'modal',style:{width:'min(700px,92vw)'}});
+  modal.innerHTML = `
+    <h3>Envíos: ${formName} (${subs.length})</h3>
+    ${subs.length ? `<div class="tbl-wrap" style="max-height:400px"><table class="tbl"><thead><tr><th>Fecha</th><th>Datos</th></tr></thead>
+    <tbody>${subs.map(s=>`<tr><td style="font-size:11px;color:var(--mute);white-space:nowrap">${new Date(s.created_at).toLocaleString()}</td>
+    <td style="font-size:12px">${Object.entries(s.data||{}).map(([k,v])=>`<strong>${k}:</strong> ${v}`).join(' · ')}</td></tr>`).join('')}</tbody></table></div>`
+    : '<div style="padding:30px;text-align:center;color:var(--mute)">Sin envíos aún</div>'}
+    <div style="margin-top:12px;text-align:right"><button class="btn" onclick="this.closest('.modal-overlay').remove()">Cerrar</button></div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+let formFields = [];
+function showFormBuilder() {
+  formFields = [];
+  const fieldTypes = [{v:'text',l:'Texto'},{v:'email',l:'Email'},{v:'tel',l:'Teléfono'},{v:'number',l:'Número'},{v:'textarea',l:'Área de texto'},{v:'select',l:'Selector'},{v:'checkbox',l:'Checkbox'}];
+  const overlay = h('div',{class:'modal-overlay',onClick:e=>{if(e.target===overlay)overlay.remove()}});
+  const modal = h('div',{class:'modal',style:{width:'min(640px,92vw)'}});
+  modal.innerHTML = `
+    <h3>Nuevo Formulario</h3>
+    <div style="display:grid;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label class="label">Nombre</label><input class="input" id="formName" placeholder="Ej: Formulario de contacto"></div>
+        <div><label class="label">Slug (URL)</label><input class="input" id="formSlug" placeholder="contacto"></div>
+      </div>
+      <div><label class="label">Webhook URL (opcional)</label><input class="input" id="formWebhook" placeholder="https://..."></div>
+      <div>
+        <label class="label">Campos del formulario</label>
+        <div id="formFieldsArea" style="min-height:60px;border:1px dashed var(--line);border-radius:8px;padding:12px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${fieldTypes.map(f=>`<button class="btn" onclick="addFormField('${f.v}','${f.l}')">+ ${f.l}</button>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveForm()">Crear formulario</button>
+      </div>
+    </div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  renderFormFields();
+}
+
+function addFormField(type, label) {
+  formFields.push({type, label:'', name:'', required:true, options:type==='select'?[]:undefined});
+  renderFormFields();
+}
+
+function removeFormField(i) { formFields.splice(i,1); renderFormFields(); }
+
+function renderFormFields() {
+  const area = $('#formFieldsArea');
+  if (!area) return;
+  if (!formFields.length) { area.innerHTML = '<div style="text-align:center;color:var(--mute);font-size:12px;padding:16px">Agrega campos usando los botones</div>'; return; }
+  area.innerHTML = formFields.map((f,i) => {
+    const typeIcons = {text:'Aa',email:'@',tel:'📞',number:'#',textarea:'¶',select:'▾',checkbox:'☑'};
+    return `<div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:6px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;background:var(--accent-soft);padding:2px 6px;border-radius:4px;color:var(--accent2)">${typeIcons[f.type]||'•'} ${f.type}</span>
+        <input class="input" style="flex:1;padding:5px 8px;font-size:12px" placeholder="Etiqueta del campo" value="${f.label}" onchange="formFields[${i}].label=this.value;formFields[${i}].name=this.value.toLowerCase().replace(/\\s+/g,'_')">
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim);cursor:pointer"><input type="checkbox" ${f.required?'checked':''} onchange="formFields[${i}].required=this.checked"> Req.</label>
+        <button class="btn" style="font-size:10px;padding:2px 6px;color:var(--red)" onclick="removeFormField(${i})">✕</button>
+      </div>
+      ${f.type === 'select' ? `<input class="input" style="margin-top:6px;font-size:11px" placeholder="Opciones separadas por coma" value="${(f.options||[]).join(',')}" onchange="formFields[${i}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)">` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function saveForm() {
+  const name = $('#formName')?.value?.trim();
+  const slug = $('#formSlug')?.value?.trim();
+  const webhook_url = $('#formWebhook')?.value?.trim() || null;
+  if (!name || !slug) return alert('Nombre y slug son requeridos');
+  if (!formFields.length) return alert('Agrega al menos un campo');
+  const fields = formFields.map(f => ({...f, label: f.label || f.type, name: f.name || f.type}));
+  await api('/forms', {method:'POST', body:JSON.stringify({name, slug, fields, webhook_url, active:true})});
+  document.querySelector('.modal-overlay')?.remove();
+  renderForms();
 }
 
 // ==== AI CHATS ====
@@ -587,11 +859,65 @@ async function renderTasks() {
 
 async function updateTask(id, status) { await api(`/tasks/${id}`, {method:'PATCH', body:JSON.stringify({status})}); renderTasks(); }
 
-async function showNewTask() {
-  const title = prompt('Título de la tarea:'); if (!title) return;
-  const priority = prompt('Prioridad (low/medium/high/urgent):') || 'medium';
-  await api('/tasks', {method:'POST', body:JSON.stringify({title, priority})});
+function showNewTask() {
+  const overlay = h('div',{class:'modal-overlay',onClick:e=>{if(e.target===overlay)overlay.remove()}});
+  const modal = h('div',{class:'modal',style:{width:'min(440px,92vw)'}});
+  modal.innerHTML = `
+    <h3>Nueva Tarea</h3>
+    <div style="display:grid;gap:12px">
+      <div><label class="label">Título</label><input class="input" id="taskTitle" placeholder="¿Qué hay que hacer?"></div>
+      <div><label class="label">Descripción (opcional)</label><textarea class="input" id="taskDesc" rows="2" placeholder="Detalles..."></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label class="label">Prioridad</label><select class="input" id="taskPriority"><option value="low">Baja</option><option value="medium" selected>Media</option><option value="high">Alta</option><option value="urgent">Urgente</option></select></div>
+        <div><label class="label">Fecha límite</label><input class="input" id="taskDue" type="date"></div>
+      </div>
+      <div><label class="label">Cliente (ID, opcional)</label><input class="input" id="taskClient" placeholder="UUID del cliente"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewTask()">Crear tarea</button>
+      </div>
+    </div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+async function saveNewTask() {
+  const title = $('#taskTitle')?.value?.trim();
+  if (!title) return alert('Ingresa un título');
+  const body = {
+    title,
+    description: $('#taskDesc')?.value?.trim() || null,
+    priority: $('#taskPriority')?.value || 'medium',
+    due_date: $('#taskDue')?.value || null,
+    client_id: $('#taskClient')?.value?.trim() || null
+  };
+  await api('/tasks', {method:'POST', body:JSON.stringify(body)});
+  document.querySelector('.modal-overlay')?.remove();
   renderTasks();
+}
+
+// ==== CLIENT PICKER ====
+async function initClientPicker(inputId) {
+  const input = $(`#${inputId}`);
+  if (!input) return;
+  const wrapper = input.parentElement;
+  wrapper.style.position = 'relative';
+  const dropdown = h('div',{style:{position:'absolute',top:'100%',left:'0',right:'0',background:'var(--bg2)',border:'1px solid var(--line)',borderRadius:'8px',maxHeight:'180px',overflowY:'auto',zIndex:'10',display:'none'}});
+  wrapper.appendChild(dropdown);
+
+  let timeout;
+  input.addEventListener('input', () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(async () => {
+      const q = input.value.trim();
+      if (q.length < 2) { dropdown.style.display = 'none'; return; }
+      const data = await api(`/clients?search=${encodeURIComponent(q)}&limit=8`);
+      if (!data.data?.length) { dropdown.style.display = 'none'; return; }
+      dropdown.innerHTML = data.data.map(c => `<div style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--line)" onmousedown="document.getElementById('${inputId}').value='${c.id}';this.parentElement.style.display='none'"><strong>${c.company_name}</strong> <span style="color:var(--mute)">— ${c.contact_name} (${c.email})</span></div>`).join('');
+      dropdown.style.display = 'block';
+    }, 300);
+  });
+  input.addEventListener('blur', () => setTimeout(() => dropdown.style.display = 'none', 200));
 }
 
 // ==== HELPERS ====

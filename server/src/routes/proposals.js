@@ -58,7 +58,6 @@ router.get('/:id', async (req, res) => {
 
 // Create proposal
 router.post('/', authenticate, authorize('admin'), validateBody({
-  client_id: { required: true },
   title: { required: true, maxLength: 500 },
   notes: { required: false, maxLength: 5000 },
 }), async (req, res) => {

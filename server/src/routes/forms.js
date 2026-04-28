@@ -116,6 +116,32 @@ router.post('/', authenticate, authorize('admin'), validateBody({
   }
 });
 
+// Get form with submissions
+router.get('/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { rows: formRows } = await db.query('SELECT * FROM forms WHERE id = $1', [req.params.id]);
+    if (!formRows.length) return res.status(404).json({ error: 'No encontrado' });
+    const { rows: subs } = await db.query(
+      'SELECT * FROM form_submissions WHERE form_id = $1 ORDER BY created_at DESC LIMIT 100',
+      [req.params.id]
+    );
+    res.json({ ...formRows[0], submissions: subs });
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// Delete form
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await db.query('DELETE FROM form_submissions WHERE form_id = $1', [req.params.id]);
+    await db.query('DELETE FROM forms WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Formulario eliminado' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 // Update form
 router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
