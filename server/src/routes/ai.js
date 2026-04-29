@@ -1,15 +1,77 @@
 const { Router } = require('express');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('../config/db');
 const env = require('../config/env');
-const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
 
 const router = Router();
 
-let genAI;
-if (env.gemini.apiKey) {
-  genAI = new GoogleGenerativeAI(env.gemini.apiKey);
+// AI provider — prefers OpenRouter, falls back to Gemini
+const AI_PROVIDER = env.openrouter.apiKey ? 'openrouter' : env.gemini.apiKey ? 'gemini' : null;
+
+const FREE_MODELS = [
+  env.openrouter.model,
+  'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'qwen/qwen3-next-80b-a3b-instruct:free',
+  'openrouter/free',
+];
+
+async function callOpenRouter(systemPrompt, messages, model) {
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.openrouter.apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': env.appUrl,
+      'X-Title': 'Innova Talent SaaS',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+      ],
+      max_tokens: 600,
+      temperature: 0.7,
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  return data.choices[0].message.content;
+}
+
+async function callAI(systemPrompt, messages) {
+  if (AI_PROVIDER === 'openrouter') {
+    const models = [...new Set(FREE_MODELS)];
+    for (const model of models) {
+      try {
+        return await callOpenRouter(systemPrompt, messages, model);
+      } catch (err) {
+        console.warn(`[AI] Model ${model} failed: ${err.message}, trying next...`);
+      }
+    }
+    throw new Error('Todos los modelos gratuitos están agotados. Intentá de nuevo en unos minutos.');
+  }
+
+  if (AI_PROVIDER === 'gemini') {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(env.gemini.apiKey);
+    const model = genAI.getGenerativeModel({
+      model: env.gemini.model,
+      systemInstruction: systemPrompt,
+      generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
+    });
+    const history = messages.slice(0, -1).map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(messages[messages.length - 1].content);
+    return result.response.text();
+  }
+
+  throw new Error('IA no configurada. Agregá OPENROUTER_API_KEY o GEMINI_API_KEY en .env');
 }
 
 // Role-specific system prompts
@@ -33,7 +95,7 @@ TU OBJETIVO:
 INFORMACIÓN QUE DEBES EXTRAER:
 - Nombre y empresa
 - Qué servicio necesitan
-- Nivel de urgencia (explorando, próximas semanas, ya necesito)
+- Nivel de urgencia
 - Tamaño del equipo/empresa
 - Timeline del proyecto
 
@@ -48,10 +110,8 @@ REGLAS:
 CONTEXTO DEL NEGOCIO:
 - Innova Talent ofrece: reclutamiento IT, automatizaciones, desarrollo web, data/BI, IA aplicada
 - El admin gestiona: leads, pipeline CRM, propuestas, reuniones, workflows, tareas, inbox, analytics
-- La plataforma tiene: unified inbox, Kanban pipeline, formularios, secuencias de automatización
 
-TU ROL:
-Eres un estratega de negocios y CRM assistant. Ayudás al admin a:
+TU ROL — estratega de negocios y CRM assistant. Ayudás al admin a:
 - Analizar leads y sugerir próximos pasos
 - Redactar propuestas comerciales y emails de seguimiento
 - Interpretar métricas y KPIs del dashboard
@@ -59,64 +119,29 @@ Eres un estratega de negocios y CRM assistant. Ayudás al admin a:
 - Priorizar tareas y organizar el pipeline
 - Crear templates de email y mensajes de WhatsApp
 - Analizar conversaciones y detectar oportunidades
-- Redactar copy para formularios y landing pages
 
-PERSONALIDAD:
-- Directo, estratégico, orientado a resultados
-- Usás datos cuando los tenés
-- Sugerís acciones concretas, no generalidades
-- Español rioplatense profesional
+PERSONALIDAD: Directo, estratégico, orientado a resultados. Español rioplatense profesional.
 
 REGLAS:
-- Si te piden redactar algo (email, propuesta, mensaje), hacelo directamente sin preguntar
-- Si te piden analizar datos, pedí los datos específicos o consultá al usuario
+- Si te piden redactar algo, hacelo directamente
 - Respuestas concisas pero completas
-- Podés usar formato markdown para estructurar
-- Si te dan contexto de un lead, analizá y sugerí estrategia de cierre`,
+- Podés usar formato markdown
+- Sugerí acciones concretas, no generalidades`,
 
   startup: `Eres el asistente de Innova Talent Labs para empresas startup clientes.
 
-CONTEXTO:
-El usuario es una startup que usa la plataforma de Innova Talent para:
-- Buscar y contratar talento tech (developers, data scientists, DevOps)
-- Acceder a la base de candidatos evaluados
-- Gestionar entrevistas y favoritos
-- Consultar sobre servicios de automatización y tecnología
+El usuario es una startup que usa la plataforma para buscar y contratar talento tech.
 
 TU ROL:
-- Ayudar a las startups a encontrar el talento ideal
-- Explicar cómo funciona el proceso de reclutamiento
-- Orientar sobre qué perfil necesitan según su caso
+- Ayudar a encontrar el talento ideal
+- Explicar el proceso de reclutamiento
+- Orientar sobre qué perfil necesitan
 - Responder dudas sobre suscripciones y servicios
-- Dar tips de entrevistas técnicas y evaluación de candidatos
+- Dar tips de entrevistas técnicas
 
-PERSONALIDAD:
-- Cercano, práctico, conocedor del ecosistema tech
-- Enfocado en resolver su necesidad de contratación
-- Español rioplatense natural
-
-REGLAS:
-- Máximo 4-5 oraciones por mensaje
-- Si preguntan algo fuera de tu scope, dirigilos a soporte`,
+PERSONALIDAD: Cercano, práctico, conocedor del ecosistema tech. Español rioplatense natural.
+Máximo 4-5 oraciones por mensaje.`,
 };
-
-function getModel(systemPrompt) {
-  return genAI.getGenerativeModel({
-    model: env.gemini.model,
-    systemInstruction: systemPrompt,
-    generationConfig: {
-      maxOutputTokens: 600,
-      temperature: 0.7,
-    },
-  });
-}
-
-function toGeminiHistory(messages) {
-  return messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
-  }));
-}
 
 // Public chat (visitors on landing page)
 router.post('/chat', validateBody({
@@ -126,8 +151,6 @@ router.post('/chat', validateBody({
   visitor_email: { required: false, type: 'email' },
 }), async (req, res) => {
   try {
-    if (!genAI) return res.status(503).json({ error: 'IA no configurada. Configurá GEMINI_API_KEY en .env' });
-
     const { conversation_id, message, visitor_name, visitor_email } = req.body;
     let conversationId = conversation_id;
     let messages = [];
@@ -139,12 +162,7 @@ router.post('/chat', validateBody({
 
     messages.push({ role: 'user', content: message });
 
-    const model = getModel(SYSTEM_PROMPTS.visitor);
-    const history = toGeminiHistory(messages.slice(0, -1));
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(message);
-    const assistantMessage = result.response.text();
-
+    const assistantMessage = await callAI(SYSTEM_PROMPTS.visitor, messages);
     messages.push({ role: 'assistant', content: assistantMessage });
 
     if (conversationId) {
@@ -163,7 +181,7 @@ router.post('/chat', validateBody({
     res.json({ conversation_id: conversationId, response: assistantMessage });
   } catch (err) {
     console.error('[AI] Chat error:', err.message);
-    res.status(500).json({ error: 'Error en el chat' });
+    res.status(500).json({ error: 'Error en el chat: ' + err.message });
   }
 });
 
@@ -174,8 +192,6 @@ router.post('/assistant', authenticate, validateBody({
   context: { required: false, maxLength: 10000 },
 }), async (req, res) => {
   try {
-    if (!genAI) return res.status(503).json({ error: 'IA no configurada. Configurá GEMINI_API_KEY en .env' });
-
     const { message, conversation_id, context } = req.body;
     const role = req.user.role;
     const systemPrompt = SYSTEM_PROMPTS[role] || SYSTEM_PROMPTS.visitor;
@@ -196,19 +212,11 @@ router.post('/assistant', authenticate, validateBody({
 
     messages.push({ role: 'user', content: fullMessage });
 
-    const model = getModel(systemPrompt);
-    const history = toGeminiHistory(messages.slice(0, -1));
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(fullMessage);
-    const assistantMessage = result.response.text();
-
+    const assistantMessage = await callAI(systemPrompt, messages);
     messages.push({ role: 'assistant', content: assistantMessage });
 
     if (conversationId) {
-      await db.query(
-        `UPDATE ai_conversations SET messages = $1 WHERE id = $2`,
-        [JSON.stringify(messages), conversationId]
-      );
+      await db.query(`UPDATE ai_conversations SET messages = $1 WHERE id = $2`, [JSON.stringify(messages), conversationId]);
     } else {
       const { rows } = await db.query(
         `INSERT INTO ai_conversations (messages, visitor_name, visitor_email) VALUES ($1, $2, $3) RETURNING id`,
@@ -227,8 +235,6 @@ router.post('/assistant', authenticate, validateBody({
 // Generate report from conversation
 router.post('/report/:conversationId', authenticate, authorize('admin'), async (req, res) => {
   try {
-    if (!genAI) return res.status(503).json({ error: 'IA no configurada' });
-
     const { rows } = await db.query('SELECT * FROM ai_conversations WHERE id = $1', [req.params.conversationId]);
     if (!rows.length) return res.status(404).json({ error: 'Conversación no encontrada' });
 
@@ -236,25 +242,23 @@ router.post('/report/:conversationId', authenticate, authorize('admin'), async (
     const reportPrompt = `Analiza esta conversación con un cliente potencial y genera un informe ejecutivo en JSON con esta estructura exacta:
 {
   "resumen_ejecutivo": "resumen de 2-3 oraciones",
-  "necesidad_detectada": "descripción clara de lo que necesita",
+  "necesidad_detectada": "descripción clara",
   "servicio_recomendado": "recruitment|automation|data|web_dev|ai",
   "urgencia": "low|medium|high|critical",
   "tamano_empresa": "estimación",
   "presupuesto_potencial": "estimación en USD",
   "lead_score": numero_0_a_100,
-  "que_venderle": "producto/servicio específico a ofrecer",
+  "que_venderle": "producto/servicio específico",
   "proximos_pasos": ["paso 1", "paso 2", "paso 3"],
-  "notas": "observaciones adicionales"
+  "notas": "observaciones"
 }
 
-Responde SOLO el JSON, sin texto adicional.
+Responde SOLO el JSON.
 
 Conversación:
 ${conversation.messages.map(m => `${m.role}: ${m.content}`).join('\n')}`;
 
-    const model = getModel('Eres un analista de ventas B2B experto. Analizás conversaciones y generas informes ejecutivos en JSON.');
-    const result = await model.generateContent(reportPrompt);
-    const text = result.response.text();
+    const text = await callAI('Eres un analista de ventas B2B. Generás informes ejecutivos en JSON puro.', [{ role: 'user', content: reportPrompt }]);
 
     let report;
     try {
@@ -276,31 +280,27 @@ ${conversation.messages.map(m => `${m.role}: ${m.content}`).join('\n')}`;
   }
 });
 
-// Admin: Quick AI actions (summarize lead, draft email, etc.)
+// Admin: Quick AI actions
 router.post('/quick', authenticate, authorize('admin'), validateBody({
   action: { required: true },
   data: { required: true },
 }), async (req, res) => {
   try {
-    if (!genAI) return res.status(503).json({ error: 'IA no configurada' });
-
     const { action, data } = req.body;
     const prompts = {
       summarize_lead: `Resumí este lead en 2-3 oraciones con recomendación de acción:\n${JSON.stringify(data)}`,
-      draft_email: `Redactá un email profesional de seguimiento para este lead. Datos:\n${JSON.stringify(data)}\n\nEl email debe ser corto (3-4 párrafos), en español, profesional pero cercano.`,
-      draft_whatsapp: `Redactá un mensaje de WhatsApp corto y profesional para este contacto. Datos:\n${JSON.stringify(data)}\n\nMáximo 3 oraciones, directo al punto.`,
-      draft_proposal: `Generá el contenido de una propuesta comercial para este cliente. Datos:\n${JSON.stringify(data)}\n\nIncluí: resumen del proyecto, alcance, entregables sugeridos, y notas. Formato markdown.`,
+      draft_email: `Redactá un email profesional de seguimiento para este lead. Datos:\n${JSON.stringify(data)}\n\nCorto (3-4 párrafos), en español, profesional pero cercano.`,
+      draft_whatsapp: `Redactá un mensaje de WhatsApp corto para este contacto. Datos:\n${JSON.stringify(data)}\n\nMáximo 3 oraciones.`,
+      draft_proposal: `Generá el contenido de una propuesta comercial. Datos:\n${JSON.stringify(data)}\n\nIncluí: resumen, alcance, entregables, notas. Formato markdown.`,
       analyze_pipeline: `Analizá este estado del pipeline CRM y dá 3 recomendaciones accionables:\n${JSON.stringify(data)}`,
-      suggest_tasks: `Basado en esta información del lead/proyecto, sugerí 3-5 tareas concretas con prioridad:\n${JSON.stringify(data)}`,
+      suggest_tasks: `Basado en esta info, sugerí 3-5 tareas concretas con prioridad:\n${JSON.stringify(data)}`,
     };
 
     const prompt = prompts[action];
     if (!prompt) return res.status(400).json({ error: 'Acción no válida' });
 
-    const model = getModel(SYSTEM_PROMPTS.admin);
-    const result = await model.generateContent(prompt);
-
-    res.json({ result: result.response.text() });
+    const result = await callAI(SYSTEM_PROMPTS.admin, [{ role: 'user', content: prompt }]);
+    res.json({ result });
   } catch (err) {
     console.error('[AI] Quick action error:', err.message);
     res.status(500).json({ error: 'Error en acción rápida' });

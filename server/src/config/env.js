@@ -48,6 +48,11 @@ module.exports = {
     model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
   },
 
+  openrouter: {
+    apiKey: process.env.OPENROUTER_API_KEY,
+    model: process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free',
+  },
+
   admin: {
     email: process.env.ADMIN_EMAIL || 'admin@innovatalentlabs.com',
     password: process.env.ADMIN_PASSWORD || 'admin123',
