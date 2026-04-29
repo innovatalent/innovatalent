@@ -10,6 +10,29 @@ function CalendlyModal({ open, onClose, calendlyUrl }) {
     };
   }, [open, onClose]);
 
+  // Listen for Calendly event_scheduled message from iframe
+  React.useEffect(() => {
+    if (!open) return;
+    const handleMessage = (e) => {
+      if (e.data?.event === 'calendly.event_scheduled') {
+        const payload = e.data.payload || {};
+        fetch(`${window.__API}/meetings/calendly-webhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'invitee.created',
+            payload: {
+              invitee: { name: payload.invitee?.name, email: payload.invitee?.email },
+              event: { start_time: payload.event?.start_time, end_time: payload.event?.end_time, location: payload.event?.location }
+            }
+          })
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [open]);
+
   if (!open) return null;
 
   const isPlaceholder = !calendlyUrl || calendlyUrl.includes('tu-link');
@@ -27,8 +50,8 @@ function CalendlyModal({ open, onClose, calendlyUrl }) {
               </svg>
             </div>
             <div>
-              <div className="text-[15px] font-medium">Agendá una llamada de intake</div>
-              <div className="font-mono text-[11px] text-mute uppercase tracking-wider">30 minutos · Gratis</div>
+              <div className="text-[15px] font-medium">Agendá una llamada</div>
+              <div className="font-mono text-[11px] text-mute uppercase tracking-wider">30 minutos · Gratis · Sincronizado con tu CRM</div>
             </div>
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-lg hover:bg-surface-2 transition flex items-center justify-center">
@@ -46,29 +69,14 @@ function CalendlyModal({ open, onClose, calendlyUrl }) {
                   <path d="M3 10h18M8 2v5M16 2v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
               </div>
-              <h3 className="text-[24px] font-medium tracking-tight mb-3">Embed de Calendly</h3>
+              <h3 className="text-[24px] font-medium tracking-tight mb-3">Conectar Calendly</h3>
               <p className="text-dim text-[15px] leading-relaxed max-w-md mb-8">
-                Configurá tu URL de Calendly en el panel de Tweaks (abajo a la derecha) y el modal va a cargar tu widget de reservas en vivo.
+                Configurá tu URL de Calendly en <code className="accent">window.__TWEAKS.calendlyUrl</code> en index.html y el widget se carga acá dentro. Las reservas se sincronizan automáticamente con tu dashboard.
               </p>
               <div className="w-full max-w-md rounded-xl border border-line bg-surface-2 p-5 text-left">
-                <div className="font-mono text-[10.5px] uppercase tracking-wider text-mute mb-2">Placeholder actual</div>
-                <div className="font-mono text-[13px] accent break-all mb-4">{calendlyUrl || 'https://calendly.com/tu-link'}</div>
-                <div className="font-mono text-[10.5px] uppercase tracking-wider text-mute mb-2">Opciones de integración</div>
-                <ol className="font-mono text-[12px] text-dim space-y-1.5 pl-4 list-decimal">
-                  <li>Embed con iframe (este modal)</li>
-                  <li>Redirección directa — abrir en nueva pestaña</li>
-                </ol>
+                <div className="font-mono text-[10.5px] uppercase tracking-wider text-mute mb-2">URL actual</div>
+                <div className="font-mono text-[13px] accent break-all mb-4">{calendlyUrl || 'no configurado'}</div>
               </div>
-              <a
-                href={calendlyUrl || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary mt-8 !text-[14px]"
-                onClick={(e) => { if (isPlaceholder) e.preventDefault(); }}
-              >
-                Abrir en nueva pestaña (redirección)
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3h6v6M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </a>
             </div>
           ) : (
             <iframe

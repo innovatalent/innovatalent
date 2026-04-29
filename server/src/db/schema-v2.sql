@@ -273,3 +273,8 @@ SELECT
     ROUND(COUNT(*) FILTER (WHERE pipeline_status = 'won')::numeric / NULLIF(COUNT(*), 0) * 100, 1) as conversion_rate
 FROM clients
 GROUP BY source;
+
+-- ====================================================================
+-- CALENDLY INTEGRATION
+-- ====================================================================
+ALTER TABLE meetings ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'manual';

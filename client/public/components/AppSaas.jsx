@@ -1,8 +1,7 @@
 function App() {
   const [tweaks, setTweaks] = React.useState(window.__TWEAKS);
-  const [modalOpen, setModalOpen] = React.useState(false);
+  const [calendlyOpen, setCalendlyOpen] = React.useState(false);
   const [contactOpen, setContactOpen] = React.useState(false);
-  const [meetingOpen, setMeetingOpen] = React.useState(false);
 
   const setTweak = (k, v) => setTweaks(prev => ({ ...prev, [k]: v }));
 
@@ -31,14 +30,14 @@ function App() {
     return () => { observer.disconnect(); mo.disconnect(); };
   }, []);
 
-  const openCalendly = () => setMeetingOpen(true);
+  const openCalendly = () => setCalendlyOpen(true);
   const openContact = () => setContactOpen(true);
 
   return (
     <>
-      <Nav onCTA={openContact} />
+      <Nav onCTA={openContact} onCalendly={openCalendly} />
       <main>
-        <Hero onCTA={openContact} showParticles={tweaks.showParticles} />
+        <Hero onCTA={openContact} onCalendly={openCalendly} showParticles={tweaks.showParticles} />
         <WhatWeDo />
         <Problem />
         <Process />
@@ -51,7 +50,7 @@ function App() {
       <FloatingWhatsApp />
       <AiChat />
       {contactOpen && <ContactForm onClose={() => setContactOpen(false)} />}
-      {meetingOpen && <MeetingBooker onClose={() => setMeetingOpen(false)} />}
+      <CalendlyModal open={calendlyOpen} onClose={() => setCalendlyOpen(false)} calendlyUrl={tweaks.calendlyUrl} />
     </>
   );
 }

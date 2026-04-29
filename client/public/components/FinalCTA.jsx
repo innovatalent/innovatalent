@@ -33,9 +33,9 @@ function FinalCTA({ onCTA }) {
             <div className="text-[20px] md:text-[22px] font-medium tracking-tight mb-2">Reclutamiento IT</div>
             <div className="text-dim text-[14.5px] leading-[1.55] mb-6">Buscamos, evaluamos y entregamos perfiles tech para tu equipo.</div>
             <div className="flex flex-col sm:flex-row gap-3 mt-auto">
-              <a href="https://calendly.com/innovatalent/30min" target="_blank" rel="noopener" className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1">
+              <button onClick={onCTA} className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1 cursor-pointer">
                 Reservar reunión <Arrow />
-              </a>
+              </button>
               <a href="https://w.app/innovatalentlabs" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
                 <WaIcon size={14} /> WhatsApp
               </a>
@@ -49,9 +49,9 @@ function FinalCTA({ onCTA }) {
             <div className="text-[20px] md:text-[22px] font-medium tracking-tight mb-2">Automatización · Web · Data</div>
             <div className="text-dim text-[14.5px] leading-[1.55] mb-6">Diagnóstico sin costo para ver qué automatizar primero en tu empresa.</div>
             <div className="flex flex-col sm:flex-row gap-3 mt-auto">
-              <a href="https://calendly.com/innovatalentlabs/30min" target="_blank" rel="noopener" className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1">
+              <button onClick={onCTA} className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1 cursor-pointer">
                 Agendar diagnóstico <Arrow />
-              </a>
+              </button>
               <a href="https://w.app/innovatalentdata" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
                 <WaIcon size={14} /> WhatsApp
               </a>

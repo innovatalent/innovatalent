@@ -1,4 +1,4 @@
-function Hero({ onCTA, showParticles }) {
+function Hero({ onCTA, onCalendly, showParticles }) {
   const particles = React.useMemo(() => {
     if (!showParticles) return [];
     return Array.from({ length: 26 }, (_, i) => ({
@@ -47,15 +47,18 @@ function Hero({ onCTA, showParticles }) {
           </p>
 
           <div className="reveal reveal-delay-3 flex flex-col-reverse sm:flex-row flex-wrap items-stretch sm:items-center gap-3 mb-16">
-            <a href="https://calendly.com/innovatalent/30min" target="_blank" rel="noopener" className="btn-primary justify-center">
-              Agendar diagnóstico gratuito
+            <button onClick={onCTA} className="btn-primary justify-center cursor-pointer">
+              Contanos tu necesidad
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </a>
+            </button>
+            <button onClick={onCalendly} className="btn-ghost justify-center cursor-pointer">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              Agendar diagnóstico
+            </button>
             <a href="https://w.app/innovatalentlabs" target="_blank" rel="noopener" className="btn-ghost justify-center" style={{borderColor: 'oklch(0.65 0.16 150 / 0.4)', color: 'oklch(0.85 0.13 150)'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.53.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.68-1.63-.93-2.23-.25-.6-.5-.5-.68-.5h-.58c-.2 0-.52.07-.8.37-.28.3-1.07 1.05-1.07 2.55s1.1 2.97 1.25 3.17c.15.2 2.15 3.3 5.22 4.6.73.3 1.3.5 1.74.64.73.23 1.4.2 1.92.12.58-.08 1.78-.72 2.03-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35M12 2C6.48 2 2 6.48 2 12c0 1.74.45 3.38 1.23 4.8L2 22l5.33-1.4A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2"/></svg>
-              Hablar por WhatsApp
+              WhatsApp
             </a>
-            <div className="font-mono text-[10.5px] uppercase tracking-wider text-mute hidden lg:block">Respuesta rápida · sin compromiso</div>
           </div>
 
           {/* Trust row */}

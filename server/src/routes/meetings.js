@@ -190,6 +190,90 @@ router.put('/admin/slots', authenticate, authorize('admin'), async (req, res) =>
   }
 });
 
+// Calendly webhook — receives event when someone books
+router.post('/calendly-webhook', async (req, res) => {
+  try {
+    const { event, payload } = req.body;
+
+    if (event === 'invitee.created') {
+      const invitee = payload?.invitee || payload;
+      const scheduledEvent = payload?.event || payload?.scheduled_event || {};
+
+      const name = invitee?.name || invitee?.first_name || '';
+      const email = invitee?.email || '';
+      const startTime = scheduledEvent?.start_time || scheduledEvent?.start || '';
+      const endTime = scheduledEvent?.end_time || scheduledEvent?.end || '';
+      const meetLink = scheduledEvent?.location?.join_url || scheduledEvent?.location?.data || '';
+      const notes = (invitee?.questions_and_answers || []).map(q => `${q.question}: ${q.answer}`).join('\n') || invitee?.text_reminder_number || '';
+
+      if (!startTime) {
+        console.log('[CALENDLY] Webhook received but no start_time found');
+        return res.json({ ok: true });
+      }
+
+      const startDate = new Date(startTime);
+      const endDate = new Date(endTime);
+      const date = startDate.toISOString().split('T')[0];
+      const start = startDate.toTimeString().slice(0, 5);
+      const end = endDate.toTimeString().slice(0, 5);
+
+      let clientId = null;
+      if (email) {
+        const { rows: clients } = await db.query('SELECT id FROM clients WHERE email = $1', [email]);
+        if (clients.length) {
+          clientId = clients[0].id;
+        } else {
+          const { rows: newClient } = await db.query(
+            `INSERT INTO clients (company_name, contact_name, email, source, pipeline_status)
+             VALUES ($1, $2, $3, 'calendly', 'contacted') RETURNING id`,
+            [name || email, name, email]
+          );
+          clientId = newClient[0].id;
+        }
+      }
+
+      const { rows: existing } = await db.query(
+        `SELECT id FROM meetings WHERE date = $1 AND start_time = $2 AND client_id = $3`,
+        [date, start, clientId]
+      );
+
+      if (!existing.length) {
+        await db.query(
+          `INSERT INTO meetings (client_id, date, start_time, end_time, meet_link, notes, source)
+           VALUES ($1, $2, $3, $4, $5, $6, 'calendly')`,
+          [clientId, date, start, end, meetLink, notes]
+        );
+        console.log(`[CALENDLY] Meeting created: ${date} ${start} — ${name} (${email})`);
+      }
+    }
+
+    if (event === 'invitee.canceled') {
+      const invitee = payload?.invitee || payload;
+      const email = invitee?.email || '';
+      const scheduledEvent = payload?.event || payload?.scheduled_event || {};
+      const startTime = scheduledEvent?.start_time || scheduledEvent?.start || '';
+
+      if (email && startTime) {
+        const startDate = new Date(startTime);
+        const date = startDate.toISOString().split('T')[0];
+        const start = startDate.toTimeString().slice(0, 5);
+
+        await db.query(
+          `UPDATE meetings SET status = 'canceled' WHERE date = $1 AND start_time = $2
+           AND client_id IN (SELECT id FROM clients WHERE email = $3)`,
+          [date, start, email]
+        );
+        console.log(`[CALENDLY] Meeting canceled: ${date} ${start} — ${email}`);
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[CALENDLY] Webhook error:', err.message);
+    res.json({ ok: true });
+  }
+});
+
 function parseTime(str) {
   const [h, m] = String(str).split(':').map(Number);
   return h * 60 + m;
