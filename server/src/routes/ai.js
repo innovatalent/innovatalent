@@ -1,43 +1,124 @@
 const { Router } = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('../config/db');
 const env = require('../config/env');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
 
 const router = Router();
 
-let anthropic;
-if (env.anthropic.apiKey) {
-  anthropic = new Anthropic({ apiKey: env.anthropic.apiKey });
+let genAI;
+if (env.gemini.apiKey) {
+  genAI = new GoogleGenerativeAI(env.gemini.apiKey);
 }
 
-const SYSTEM_PROMPT = `Eres un consultor experto de Innova Talent Labs, una empresa que ofrece:
-1. Reclutamiento IT para startups (desarrolladores, data, DevOps, liderazgo)
-2. Automatizaciones empresariales (WhatsApp, CRM, integraciones)
-3. Desarrollo web profesional (landing pages, sitios corporativos, e-commerce)
-4. Ciencia de datos & BI (dashboards, KPIs, predicciones)
-5. IA aplicada a negocios
+// Role-specific system prompts
+const SYSTEM_PROMPTS = {
+  visitor: `Eres el asistente virtual de Innova Talent Labs, una empresa que ofrece:
+1. Reclutamiento IT para startups (desarrolladores, data, DevOps, liderazgo tech)
+2. Automatizaciones empresariales (WhatsApp, CRM, flujos de trabajo, integraciones)
+3. Desarrollo web profesional (landing pages, sitios corporativos, e-commerce, apps)
+4. Ciencia de datos & BI (dashboards, KPIs, predicciones, análisis)
+5. IA aplicada a negocios (chatbots, procesamiento de documentos, automatización inteligente)
 
-Tu objetivo es:
-- Entender qué necesita el cliente
+PERSONALIDAD: Eres amable, profesional, directo y entusiasta. Hablas en español rioplatense natural.
+
+TU OBJETIVO:
+- Entender qué necesita el visitante
 - Hacer preguntas inteligentes para calificar el lead
 - Detectar: servicio buscado, urgencia, tamaño de empresa, presupuesto
-- Ser amable, profesional y directo
-- Responder en español
-- Al final de la conversación, sugerir agendar una reunión
+- Al detectar interés real, sugerir agendar una reunión de diagnóstico gratuita
+- Si preguntan precios, dar rangos orientativos y ofrecer diagnóstico personalizado
 
-Información que debes extraer durante la conversación:
+INFORMACIÓN QUE DEBES EXTRAER:
 - Nombre y empresa
 - Qué servicio necesitan
-- Nivel de urgencia
+- Nivel de urgencia (explorando, próximas semanas, ya necesito)
 - Tamaño del equipo/empresa
-- Presupuesto estimado
-- Timeline
+- Timeline del proyecto
 
-Responde de forma concisa (máximo 3-4 oraciones por mensaje).`;
+REGLAS:
+- Responde MÁXIMO 3-4 oraciones por mensaje
+- No inventes datos ni hagas promesas específicas de plazos
+- Si preguntan algo que no sabés, ofrecé conectarlos con el equipo
+- Nunca rompas tu rol de asistente de Innova Talent`,
 
-// Start or continue AI conversation
+  admin: `Eres el asistente de inteligencia de negocios de Innova Talent Labs. Estás integrado en el panel de administración CRM/GoHighLevel de la empresa.
+
+CONTEXTO DEL NEGOCIO:
+- Innova Talent ofrece: reclutamiento IT, automatizaciones, desarrollo web, data/BI, IA aplicada
+- El admin gestiona: leads, pipeline CRM, propuestas, reuniones, workflows, tareas, inbox, analytics
+- La plataforma tiene: unified inbox, Kanban pipeline, formularios, secuencias de automatización
+
+TU ROL:
+Eres un estratega de negocios y CRM assistant. Ayudás al admin a:
+- Analizar leads y sugerir próximos pasos
+- Redactar propuestas comerciales y emails de seguimiento
+- Interpretar métricas y KPIs del dashboard
+- Sugerir estrategias de nurturing y cierre
+- Priorizar tareas y organizar el pipeline
+- Crear templates de email y mensajes de WhatsApp
+- Analizar conversaciones y detectar oportunidades
+- Redactar copy para formularios y landing pages
+
+PERSONALIDAD:
+- Directo, estratégico, orientado a resultados
+- Usás datos cuando los tenés
+- Sugerís acciones concretas, no generalidades
+- Español rioplatense profesional
+
+REGLAS:
+- Si te piden redactar algo (email, propuesta, mensaje), hacelo directamente sin preguntar
+- Si te piden analizar datos, pedí los datos específicos o consultá al usuario
+- Respuestas concisas pero completas
+- Podés usar formato markdown para estructurar
+- Si te dan contexto de un lead, analizá y sugerí estrategia de cierre`,
+
+  startup: `Eres el asistente de Innova Talent Labs para empresas startup clientes.
+
+CONTEXTO:
+El usuario es una startup que usa la plataforma de Innova Talent para:
+- Buscar y contratar talento tech (developers, data scientists, DevOps)
+- Acceder a la base de candidatos evaluados
+- Gestionar entrevistas y favoritos
+- Consultar sobre servicios de automatización y tecnología
+
+TU ROL:
+- Ayudar a las startups a encontrar el talento ideal
+- Explicar cómo funciona el proceso de reclutamiento
+- Orientar sobre qué perfil necesitan según su caso
+- Responder dudas sobre suscripciones y servicios
+- Dar tips de entrevistas técnicas y evaluación de candidatos
+
+PERSONALIDAD:
+- Cercano, práctico, conocedor del ecosistema tech
+- Enfocado en resolver su necesidad de contratación
+- Español rioplatense natural
+
+REGLAS:
+- Máximo 4-5 oraciones por mensaje
+- Si preguntan algo fuera de tu scope, dirigilos a soporte`,
+};
+
+function getModel(systemPrompt) {
+  return genAI.getGenerativeModel({
+    model: env.gemini.model,
+    systemInstruction: systemPrompt,
+    generationConfig: {
+      maxOutputTokens: 600,
+      temperature: 0.7,
+    },
+  });
+}
+
+function toGeminiHistory(messages) {
+  return messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+}
+
+// Public chat (visitors on landing page)
 router.post('/chat', validateBody({
   conversation_id: { required: false },
   message: { required: true, maxLength: 2000 },
@@ -45,9 +126,7 @@ router.post('/chat', validateBody({
   visitor_email: { required: false, type: 'email' },
 }), async (req, res) => {
   try {
-    if (!anthropic) {
-      return res.status(503).json({ error: 'IA no configurada' });
-    }
+    if (!genAI) return res.status(503).json({ error: 'IA no configurada. Configurá GEMINI_API_KEY en .env' });
 
     const { conversation_id, message, visitor_name, visitor_email } = req.body;
     let conversationId = conversation_id;
@@ -55,21 +134,17 @@ router.post('/chat', validateBody({
 
     if (conversationId) {
       const { rows } = await db.query('SELECT * FROM ai_conversations WHERE id = $1', [conversationId]);
-      if (rows.length) {
-        messages = rows[0].messages || [];
-      }
+      if (rows.length) messages = rows[0].messages || [];
     }
 
     messages.push({ role: 'user', content: message });
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      system: SYSTEM_PROMPT,
-      messages,
-    });
+    const model = getModel(SYSTEM_PROMPTS.visitor);
+    const history = toGeminiHistory(messages.slice(0, -1));
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(message);
+    const assistantMessage = result.response.text();
 
-    const assistantMessage = response.content[0].text;
     messages.push({ role: 'assistant', content: assistantMessage });
 
     if (conversationId) {
@@ -92,16 +167,72 @@ router.post('/chat', validateBody({
   }
 });
 
+// Authenticated chat (admin or startup dashboard)
+router.post('/assistant', authenticate, validateBody({
+  message: { required: true, maxLength: 5000 },
+  conversation_id: { required: false },
+  context: { required: false, maxLength: 10000 },
+}), async (req, res) => {
+  try {
+    if (!genAI) return res.status(503).json({ error: 'IA no configurada. Configurá GEMINI_API_KEY en .env' });
+
+    const { message, conversation_id, context } = req.body;
+    const role = req.user.role;
+    const systemPrompt = SYSTEM_PROMPTS[role] || SYSTEM_PROMPTS.visitor;
+
+    let conversationId = conversation_id;
+    let messages = [];
+
+    if (conversationId) {
+      const { rows } = await db.query(
+        'SELECT messages FROM ai_conversations WHERE id = $1 AND visitor_email = $2',
+        [conversationId, req.user.email]
+      );
+      if (rows.length) messages = rows[0].messages || [];
+    }
+
+    let fullMessage = message;
+    if (context) fullMessage = `[CONTEXTO DEL CRM]\n${context}\n\n[MI PREGUNTA]\n${message}`;
+
+    messages.push({ role: 'user', content: fullMessage });
+
+    const model = getModel(systemPrompt);
+    const history = toGeminiHistory(messages.slice(0, -1));
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(fullMessage);
+    const assistantMessage = result.response.text();
+
+    messages.push({ role: 'assistant', content: assistantMessage });
+
+    if (conversationId) {
+      await db.query(
+        `UPDATE ai_conversations SET messages = $1 WHERE id = $2`,
+        [JSON.stringify(messages), conversationId]
+      );
+    } else {
+      const { rows } = await db.query(
+        `INSERT INTO ai_conversations (messages, visitor_name, visitor_email) VALUES ($1, $2, $3) RETURNING id`,
+        [JSON.stringify(messages), req.user.email, req.user.email]
+      );
+      conversationId = rows[0].id;
+    }
+
+    res.json({ conversation_id: conversationId, response: assistantMessage });
+  } catch (err) {
+    console.error('[AI] Assistant error:', err.message);
+    res.status(500).json({ error: 'Error en el asistente' });
+  }
+});
+
 // Generate report from conversation
 router.post('/report/:conversationId', authenticate, authorize('admin'), async (req, res) => {
   try {
-    if (!anthropic) return res.status(503).json({ error: 'IA no configurada' });
+    if (!genAI) return res.status(503).json({ error: 'IA no configurada' });
 
     const { rows } = await db.query('SELECT * FROM ai_conversations WHERE id = $1', [req.params.conversationId]);
     if (!rows.length) return res.status(404).json({ error: 'Conversación no encontrada' });
 
     const conversation = rows[0];
-
     const reportPrompt = `Analiza esta conversación con un cliente potencial y genera un informe ejecutivo en JSON con esta estructura exacta:
 {
   "resumen_ejecutivo": "resumen de 2-3 oraciones",
@@ -110,27 +241,27 @@ router.post('/report/:conversationId', authenticate, authorize('admin'), async (
   "urgencia": "low|medium|high|critical",
   "tamano_empresa": "estimación",
   "presupuesto_potencial": "estimación en USD",
-  "lead_score": 0-100,
+  "lead_score": numero_0_a_100,
   "que_venderle": "producto/servicio específico a ofrecer",
   "proximos_pasos": ["paso 1", "paso 2", "paso 3"],
   "notas": "observaciones adicionales"
 }
 
+Responde SOLO el JSON, sin texto adicional.
+
 Conversación:
 ${conversation.messages.map(m => `${m.role}: ${m.content}`).join('\n')}`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: reportPrompt }],
-    });
+    const model = getModel('Eres un analista de ventas B2B experto. Analizás conversaciones y generas informes ejecutivos en JSON.');
+    const result = await model.generateContent(reportPrompt);
+    const text = result.response.text();
 
     let report;
     try {
-      const jsonMatch = response.content[0].text.match(/\{[\s\S]*\}/);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       report = JSON.parse(jsonMatch[0]);
     } catch {
-      report = { raw: response.content[0].text };
+      report = { raw: text };
     }
 
     await db.query(
@@ -142,6 +273,37 @@ ${conversation.messages.map(m => `${m.role}: ${m.content}`).join('\n')}`;
   } catch (err) {
     console.error('[AI] Report error:', err.message);
     res.status(500).json({ error: 'Error al generar reporte' });
+  }
+});
+
+// Admin: Quick AI actions (summarize lead, draft email, etc.)
+router.post('/quick', authenticate, authorize('admin'), validateBody({
+  action: { required: true },
+  data: { required: true },
+}), async (req, res) => {
+  try {
+    if (!genAI) return res.status(503).json({ error: 'IA no configurada' });
+
+    const { action, data } = req.body;
+    const prompts = {
+      summarize_lead: `Resumí este lead en 2-3 oraciones con recomendación de acción:\n${JSON.stringify(data)}`,
+      draft_email: `Redactá un email profesional de seguimiento para este lead. Datos:\n${JSON.stringify(data)}\n\nEl email debe ser corto (3-4 párrafos), en español, profesional pero cercano.`,
+      draft_whatsapp: `Redactá un mensaje de WhatsApp corto y profesional para este contacto. Datos:\n${JSON.stringify(data)}\n\nMáximo 3 oraciones, directo al punto.`,
+      draft_proposal: `Generá el contenido de una propuesta comercial para este cliente. Datos:\n${JSON.stringify(data)}\n\nIncluí: resumen del proyecto, alcance, entregables sugeridos, y notas. Formato markdown.`,
+      analyze_pipeline: `Analizá este estado del pipeline CRM y dá 3 recomendaciones accionables:\n${JSON.stringify(data)}`,
+      suggest_tasks: `Basado en esta información del lead/proyecto, sugerí 3-5 tareas concretas con prioridad:\n${JSON.stringify(data)}`,
+    };
+
+    const prompt = prompts[action];
+    if (!prompt) return res.status(400).json({ error: 'Acción no válida' });
+
+    const model = getModel(SYSTEM_PROMPTS.admin);
+    const result = await model.generateContent(prompt);
+
+    res.json({ result: result.response.text() });
+  } catch (err) {
+    console.error('[AI] Quick action error:', err.message);
+    res.status(500).json({ error: 'Error en acción rápida' });
   }
 });
 

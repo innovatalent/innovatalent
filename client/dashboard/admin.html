@@ -122,6 +122,23 @@
   .tab{padding:8px 14px;font-size:13px;color:var(--dim);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .12s}
   .tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
   .tab:hover{color:var(--ink)}
+
+  /* AI Assistant */
+  .ai-fab{position:fixed;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:90;box-shadow:0 4px 20px rgba(99,102,241,.4);transition:transform .15s}
+  .ai-fab:hover{transform:scale(1.08)}
+  .ai-panel{position:fixed;bottom:80px;right:20px;width:380px;height:520px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;z-index:90;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+  .ai-panel-header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .ai-panel-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .ai-panel-msg{max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;white-space:pre-wrap}
+  .ai-panel-msg.user{background:var(--accent-soft);align-self:flex-end;border-bottom-right-radius:4px}
+  .ai-panel-msg.assistant{background:var(--bg3);align-self:flex-start;border-bottom-left-radius:4px}
+  .ai-panel-input{padding:10px;border-top:1px solid var(--line);display:flex;gap:6px}
+  .ai-panel-input input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--ink);font-size:13px;outline:none}
+  .ai-panel-input input:focus{border-color:var(--accent)}
+  .ai-panel-input button{background:var(--accent);border:none;border-radius:8px;padding:8px 14px;color:#fff;cursor:pointer;font-weight:600;font-size:12px}
+  .ai-panel-actions{padding:6px 10px;border-top:1px solid var(--line);display:flex;gap:4px;flex-wrap:wrap}
+  .ai-quick-btn{font-size:10px;padding:4px 8px;border-radius:5px;border:1px solid var(--line);background:var(--bg);color:var(--dim);cursor:pointer;transition:all .1s}
+  .ai-quick-btn:hover{border-color:var(--accent);color:var(--accent2)}
 </style>
 </head>
 <body>
@@ -938,6 +955,110 @@ function timeAgo(date) {
     if (unread > 0) { const badge = $('#unreadBadge'); badge.textContent = unread; badge.style.display = 'inline'; }
   } catch {}
 })();
+
+// ==== AI ASSISTANT ====
+let aiOpen = false;
+let aiMessages = [];
+let aiConvId = null;
+let aiLoading = false;
+
+function toggleAI() {
+  aiOpen = !aiOpen;
+  if (aiOpen) {
+    if (!aiMessages.length) aiMessages.push({role:'assistant',content:'Hola! Soy tu asistente de negocios. Puedo ayudarte a:\n\n• Analizar leads y sugerir estrategias\n• Redactar emails y propuestas\n• Interpretar métricas del dashboard\n• Priorizar tareas\n\n¿En qué te ayudo?'});
+    renderAIPanel();
+  } else {
+    const panel = document.getElementById('aiPanel');
+    if (panel) panel.remove();
+  }
+}
+
+function renderAIPanel() {
+  let panel = document.getElementById('aiPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'aiPanel';
+    panel.className = 'ai-panel';
+    document.body.appendChild(panel);
+  }
+  panel.innerHTML = `
+    <div class="ai-panel-header">
+      <div><span style="font-weight:600;font-size:13px">Asistente IA</span> <span style="font-size:11px;color:var(--accent2)">· Gemini</span></div>
+      <div style="display:flex;gap:6px">
+        <button class="ai-quick-btn" onclick="aiMessages=[];aiConvId=null;toggleAI();toggleAI()">Limpiar</button>
+        <button style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px" onclick="toggleAI()">✕</button>
+      </div>
+    </div>
+    <div class="ai-panel-msgs" id="aiMsgs">
+      ${aiMessages.map(m => `<div class="ai-panel-msg ${m.role}">${m.content}</div>`).join('')}
+      ${aiLoading ? '<div class="ai-panel-msg assistant" style="opacity:.5">Pensando...</div>' : ''}
+    </div>
+    <div class="ai-panel-actions">
+      <button class="ai-quick-btn" onclick="aiQuick('draft_email',{})">✉️ Email</button>
+      <button class="ai-quick-btn" onclick="aiQuick('draft_whatsapp',{})">📱 WhatsApp</button>
+      <button class="ai-quick-btn" onclick="aiQuick('analyze_pipeline',{})">📊 Pipeline</button>
+      <button class="ai-quick-btn" onclick="aiQuick('suggest_tasks',{})">✅ Tareas</button>
+    </div>
+    <div class="ai-panel-input">
+      <input id="aiInput" placeholder="Preguntá algo..." onkeydown="if(event.key==='Enter')sendAI()" ${aiLoading?'disabled':''} />
+      <button onclick="sendAI()" ${aiLoading?'disabled':''}>Enviar</button>
+    </div>
+  `;
+  const msgs = document.getElementById('aiMsgs');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  const input = document.getElementById('aiInput');
+  if (input && !aiLoading) input.focus();
+}
+
+async function sendAI() {
+  const input = document.getElementById('aiInput');
+  const msg = input?.value?.trim();
+  if (!msg || aiLoading) return;
+  input.value = '';
+  aiMessages.push({role:'user', content:msg});
+  aiLoading = true;
+  renderAIPanel();
+  try {
+    const data = await api('/ai/assistant', {method:'POST', body:JSON.stringify({message:msg, conversation_id:aiConvId})});
+    if (data.conversation_id) aiConvId = data.conversation_id;
+    aiMessages.push({role:'assistant', content:data.response});
+  } catch (e) {
+    aiMessages.push({role:'assistant', content:'Error: ' + (e.message || 'no se pudo conectar')});
+  }
+  aiLoading = false;
+  renderAIPanel();
+}
+
+async function aiQuick(action, extraData) {
+  aiLoading = true;
+  let context = extraData;
+  if (action === 'analyze_pipeline') {
+    try { context = await api('/analytics/kpis'); } catch {}
+  }
+  const promptMap = {
+    draft_email: 'Redactame un email de seguimiento profesional para un lead. Preguntame los datos que necesitás.',
+    draft_whatsapp: 'Redactame un mensaje de WhatsApp corto para un lead. Preguntame los datos.',
+    analyze_pipeline: `Analizá estos KPIs de mi pipeline y dame 3 recomendaciones:\n${JSON.stringify(context)}`,
+    suggest_tasks: 'Sugerí 5 tareas prioritarias que debería hacer hoy para avanzar con mis leads y pipeline.'
+  };
+  const msg = promptMap[action] || action;
+  aiMessages.push({role:'user', content:msg});
+  renderAIPanel();
+  try {
+    const data = await api('/ai/assistant', {method:'POST', body:JSON.stringify({message:msg, conversation_id:aiConvId})});
+    if (data.conversation_id) aiConvId = data.conversation_id;
+    aiMessages.push({role:'assistant', content:data.response});
+  } catch (e) {
+    aiMessages.push({role:'assistant', content:'Error: ' + (e.message || 'IA no disponible')});
+  }
+  aiLoading = false;
+  renderAIPanel();
+}
 </script>
+
+<!-- AI FAB button -->
+<button class="ai-fab" onclick="toggleAI()" title="Asistente IA">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1l-2 5h-4l-2-5H7a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3V6a4 4 0 0 1 4-4z"/><circle cx="9" cy="9" r="1" fill="#fff"/><circle cx="15" cy="9" r="1" fill="#fff"/></svg>
+</button>
 </body>
 </html>

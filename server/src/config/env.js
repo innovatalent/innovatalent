@@ -43,6 +43,11 @@ module.exports = {
     apiKey: process.env.ANTHROPIC_API_KEY,
   },
 
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY,
+    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+  },
+
   admin: {
     email: process.env.ADMIN_EMAIL || 'admin@innovatalentlabs.com',
     password: process.env.ADMIN_PASSWORD || 'admin123',
