@@ -1,0 +1,94 @@
+{
+  "name": "Meeting Prep Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] }
+      },
+      "name": "Check Upcoming Meetings",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [250, 300],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/upcoming-meetings",
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Fetch Meetings",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            { "leftValue": "={{ $json.notes }}", "rightValue": "", "operator": { "type": "string", "operation": "empty" } }
+          ]
+        }
+      },
+      "name": "Needs Prep?",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "method": "POST",
+        "headers": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ={{$env.OPENROUTER_API_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "body": {
+          "model": "google/gemma-4-31b-it:free",
+          "messages": [
+            { "role": "system", "content": "Eres un asistente de preparación de reuniones de ventas B2B para Innova Talent Labs (reclutamiento IT, automatizaciones, web, data, IA). Generá un briefing conciso en español." },
+            { "role": "user", "content": "Preparame un briefing para la reunión con este lead:\n\nEmpresa: {{$json.company_name}}\nContacto: {{$json.contact_name}}\nEmail: {{$json.email}}\nServicios que buscan: {{$json.services}}\nNecesidad descrita: {{$json.client_needs}}\n\nIncluí:\n1. Resumen del lead (2 líneas)\n2. Preguntas clave para hacer en la reunión (3-4)\n3. Propuesta de valor personalizada (qué ofrecerle)\n4. Posibles objeciones y cómo responderlas\n5. Próximos pasos sugeridos" }
+          ],
+          "max_tokens": 500,
+          "temperature": 0.7
+        }
+      },
+      "name": "AI Generate Briefing",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/meeting-briefing",
+        "method": "POST",
+        "body": {
+          "meeting_id": "={{ $json.id }}",
+          "briefing": "={{ $json.choices[0].message.content }}"
+        },
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Save Briefing",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 300],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "Check Upcoming Meetings": { "main": [[{ "node": "Fetch Meetings", "type": "main", "index": 0 }]] },
+    "Fetch Meetings": { "main": [[{ "node": "Needs Prep?", "type": "main", "index": 0 }]] },
+    "Needs Prep?": { "main": [[{ "node": "AI Generate Briefing", "type": "main", "index": 0 }], []] },
+    "AI Generate Briefing": { "main": [[{ "node": "Save Briefing", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "innova-talent" }]
+}

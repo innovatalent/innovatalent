@@ -50,6 +50,35 @@ services:
     networks:
       - app-network
 
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: innovatalent-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-InnovaN8n2026!}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${DB_NAME:-innovatalent}
+      - DB_POSTGRESDB_USER=${DB_USER:-innovatalent_user}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-changeme}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-innova-n8n-enc-key-change-me}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
   certbot:
     image: certbot/certbot
     container_name: innovatalent-certbot
@@ -62,6 +91,7 @@ volumes:
   pgdata:
   uploads:
   certbot-data:
+  n8n_data:
 
 networks:
   app-network:

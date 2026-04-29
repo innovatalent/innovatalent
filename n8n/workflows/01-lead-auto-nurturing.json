@@ -1,0 +1,116 @@
+{
+  "name": "Lead Auto-Nurturing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] }
+      },
+      "name": "Poll New Leads",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [250, 300],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/new-leads?since={{$now.minus(5, 'minutes').toISO()}}",
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Fetch New Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "combinator": "and",
+          "conditions": [
+            { "leftValue": "={{ $json.urgency }}", "rightValue": "high", "operator": { "type": "string", "operation": "equals" } }
+          ]
+        }
+      },
+      "name": "Is High Urgency?",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "model": "google/gemma-4-31b-it:free",
+        "messages": {
+          "values": [
+            {
+              "content": "Sos un asistente de ventas de Innova Talent Labs. Generá un mensaje de WhatsApp corto (máximo 3 oraciones) personalizado para este lead:\n\nEmpresa: {{$json.company_name}}\nContacto: {{$json.contact_name}}\nServicio: {{$json.services}}\nUrgencia: {{$json.urgency}}\nNecesidad: {{$json.description}}\n\nEl tono debe ser profesional pero cercano, en español rioplatense."
+            }
+          ]
+        },
+        "options": { "maxTokens": 200, "temperature": 0.7 }
+      },
+      "name": "AI Draft Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 200],
+      "typeVersion": 4.2,
+      "notes": "Call OpenRouter API to generate personalized follow-up"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/follow-up-sent",
+        "method": "POST",
+        "body": {
+          "client_id": "={{ $json.id }}",
+          "channel": "whatsapp",
+          "message": "={{ $json.ai_response }}",
+          "status": "sent"
+        },
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Log Follow-up",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 200],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/create-task",
+        "method": "POST",
+        "body": {
+          "title": "Follow-up: {{ $json.company_name }}",
+          "description": "Lead de urgencia {{ $json.urgency }}. Servicio: {{ $json.services }}. Contacto: {{ $json.contact_name }} ({{ $json.email }})",
+          "priority": "={{ $json.urgency === 'critical' ? 'urgent' : $json.urgency === 'high' ? 'high' : 'medium' }}",
+          "due_date": "={{ $now.plus(1, 'days').toISODate() }}"
+        },
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Create Follow-up Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 400],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "Poll New Leads": { "main": [[{ "node": "Fetch New Leads", "type": "main", "index": 0 }]] },
+    "Fetch New Leads": { "main": [[{ "node": "Is High Urgency?", "type": "main", "index": 0 }]] },
+    "Is High Urgency?": {
+      "main": [
+        [{ "node": "AI Draft Message", "type": "main", "index": 0 }],
+        [{ "node": "Create Follow-up Task", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Draft Message": { "main": [[{ "node": "Log Follow-up", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "innova-talent" }]
+}

@@ -1,0 +1,94 @@
+{
+  "name": "Weekly Pipeline Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "weeksInterval": 1, "triggerAtDay": 1, "triggerAtHour": 9 }] }
+      },
+      "name": "Every Monday 9am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [250, 300],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/pipeline-summary",
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Fetch Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/new-leads?since={{$now.minus(7, 'days').toISO()}}",
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Fetch Week Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 500],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "method": "POST",
+        "headers": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ={{$env.OPENROUTER_API_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "body": {
+          "model": "google/gemma-4-31b-it:free",
+          "messages": [
+            { "role": "system", "content": "Eres un analista de ventas de Innova Talent Labs. Generás reportes semanales ejecutivos en español rioplatense." },
+            { "role": "user", "content": "Generá un reporte semanal del pipeline con estos datos:\n\nPipeline actual: {{JSON.stringify($('Fetch Pipeline').item.json)}}\n\nLeads nuevos esta semana: {{$('Fetch Week Leads').item.json.length}}\n\nIncluí:\n1. Resumen ejecutivo (3 líneas)\n2. Métricas clave (leads nuevos, por estado, urgentes)\n3. Top 3 acciones recomendadas para esta semana\n4. Leads que necesitan atención inmediata" }
+          ],
+          "max_tokens": 600,
+          "temperature": 0.5
+        }
+      },
+      "name": "AI Generate Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [700, 400],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/notify",
+        "method": "POST",
+        "body": {
+          "type": "weekly_report",
+          "title": "Reporte Semanal de Pipeline",
+          "message": "={{ $json.choices[0].message.content }}"
+        },
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Save Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 400],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "Every Monday 9am": { "main": [[{ "node": "Fetch Pipeline", "type": "main", "index": 0 }, { "node": "Fetch Week Leads", "type": "main", "index": 0 }]] },
+    "Fetch Pipeline": { "main": [[{ "node": "AI Generate Report", "type": "main", "index": 0 }]] },
+    "AI Generate Report": { "main": [[{ "node": "Save Report", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "innova-talent" }]
+}

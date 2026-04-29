@@ -1,0 +1,81 @@
+{
+  "name": "AI Chat Lead Scorer",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] }
+      },
+      "name": "Check Unscored Chats",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [250, 300],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/ai-conversations",
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Fetch Conversations",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "method": "POST",
+        "headers": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ={{$env.OPENROUTER_API_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "body": {
+          "model": "google/gemma-4-31b-it:free",
+          "messages": [
+            { "role": "system", "content": "Analiza esta conversación de chat y devolvé un JSON con: {\"score\": 0-100, \"service\": \"recruitment|automation|data|web_dev|ai\", \"urgency\": \"low|medium|high|critical\", \"analysis\": \"resumen 1 oración\", \"action\": \"acción recomendada\"}. Solo JSON." },
+            { "role": "user", "content": "Conversación:\n{{JSON.stringify($json.messages)}}" }
+          ],
+          "max_tokens": 200,
+          "temperature": 0.3
+        }
+      },
+      "name": "AI Score Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [650, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/lead-scored",
+        "method": "POST",
+        "body": {
+          "client_id": "={{ $json.visitor_email }}",
+          "score": "={{ JSON.parse($json.choices[0].message.content).score }}",
+          "analysis": "={{ JSON.parse($json.choices[0].message.content).analysis }}",
+          "recommended_action": "={{ JSON.parse($json.choices[0].message.content).action }}"
+        },
+        "options": {
+          "headers": {
+            "parameters": [{ "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" }]
+          }
+        }
+      },
+      "name": "Update Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 300],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "Check Unscored Chats": { "main": [[{ "node": "Fetch Conversations", "type": "main", "index": 0 }]] },
+    "Fetch Conversations": { "main": [[{ "node": "AI Score Lead", "type": "main", "index": 0 }]] },
+    "AI Score Lead": { "main": [[{ "node": "Update Score", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "innova-talent" }]
+}
