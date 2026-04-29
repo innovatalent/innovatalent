@@ -63,6 +63,16 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Public form pages
+app.get('/form/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/public/form.html'));
+});
+
+// Public proposal view
+app.get('/proposal/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/public/proposal.html'));
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {

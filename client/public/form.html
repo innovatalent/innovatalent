@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formulario — Innova Talent</title>
+<link rel="icon" type="image/png" href="/assets/innova-logo.png">
+<style>
+  :root{--bg:#0f1117;--bg2:#16181f;--ink:#f0f1f3;--dim:#9ca3af;--line:#2a2d37;--accent:#6366f1;--accent2:#818cf8;--green:#22c55e;--red:#ef4444}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .container{width:100%;max-width:520px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:32px}
+  h1{font-size:22px;font-weight:600;margin-bottom:4px}
+  .desc{font-size:14px;color:var(--dim);margin-bottom:24px}
+  .field{margin-bottom:16px}
+  .label{display:block;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);margin-bottom:6px}
+  .required{color:var(--red)}
+  .input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;color:var(--ink);font-size:14px;outline:none;font-family:inherit;transition:border-color .15s}
+  .input:focus{border-color:var(--accent)}
+  textarea.input{resize:vertical;min-height:80px}
+  select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .checkbox-wrap{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .checkbox-wrap input{width:18px;height:18px;accent-color:var(--accent)}
+  .btn{display:block;width:100%;background:var(--accent);border:none;border-radius:8px;padding:12px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:24px}
+  .btn:hover{background:var(--accent2)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .success{text-align:center;padding:40px 20px}
+  .success h2{font-size:24px;margin-bottom:8px;color:var(--green)}
+  .success p{color:var(--dim);font-size:14px}
+  .error{color:var(--red);font-size:12px;margin-top:4px}
+  .loading{text-align:center;padding:60px;color:var(--dim)}
+  .branding{text-align:center;margin-top:16px;font-size:11px;color:var(--dim)}
+  .branding a{color:var(--accent2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card" id="formCard">
+    <div class="loading">Cargando formulario...</div>
+  </div>
+  <div class="branding">Powered by <a href="/">Innova Talent</a></div>
+</div>
+
+<script>
+const slug = new URLSearchParams(window.location.search).get('s') || window.location.pathname.split('/form/').pop();
+
+async function loadForm() {
+  const card = document.getElementById('formCard');
+  try {
+    const res = await fetch(`/api/forms/s/${slug}`);
+    if (!res.ok) throw new Error('not found');
+    const form = await res.json();
+
+    document.title = `${form.name} — Innova Talent`;
+    card.innerHTML = `
+      <h1>${form.name}</h1>
+      ${form.settings?.description ? `<div class="desc">${form.settings.description}</div>` : ''}
+      <form id="theForm" onsubmit="submitForm(event)">
+        ${form.fields.map(field => renderField(field)).join('')}
+        <button type="submit" class="btn" id="submitBtn">Enviar</button>
+      </form>
+    `;
+  } catch {
+    card.innerHTML = '<div class="loading" style="color:var(--red)">Formulario no encontrado o inactivo.</div>';
+  }
+}
+
+function renderField(field) {
+  const req = field.required ? '<span class="required">*</span>' : '';
+  const name = field.name || field.label.toLowerCase().replace(/\s+/g, '_');
+
+  if (field.type === 'checkbox') {
+    return `<div class="field"><label class="checkbox-wrap"><input type="checkbox" name="${name}" ${field.required?'required':''}><span style="font-size:14px">${field.label} ${req}</span></label></div>`;
+  }
+  if (field.type === 'select') {
+    return `<div class="field"><label class="label">${field.label} ${req}</label><select class="input" name="${name}" ${field.required?'required':''}><option value="">Seleccionar...</option>${(field.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
+  }
+  if (field.type === 'textarea') {
+    return `<div class="field"><label class="label">${field.label} ${req}</label><textarea class="input" name="${name}" placeholder="${field.placeholder||''}" ${field.required?'required':''}></textarea></div>`;
+  }
+  return `<div class="field"><label class="label">${field.label} ${req}</label><input class="input" type="${field.type||'text'}" name="${name}" placeholder="${field.placeholder||''}" ${field.required?'required':''}></div>`;
+}
+
+async function submitForm(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  const formData = new FormData(e.target);
+  const data = {};
+  for (const [k, v] of formData.entries()) data[k] = v;
+  document.querySelectorAll('input[type=checkbox]').forEach(cb => { data[cb.name] = cb.checked; });
+
+  try {
+    const res = await fetch(`/api/forms/s/${slug}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || result.details?.join(', '));
+
+    document.getElementById('formCard').innerHTML = `
+      <div class="success">
+        <h2>${result.message || 'Enviado correctamente'}</h2>
+        <p>Gracias por completar el formulario. Te contactaremos pronto.</p>
+      </div>`;
+
+    if (result.redirect) setTimeout(() => window.location.href = result.redirect, 2000);
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'Enviar';
+    alert(err.message || 'Error al enviar');
+  }
+}
+
+loadForm();
+</script>
+</body>
+</html>

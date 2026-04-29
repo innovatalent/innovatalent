@@ -694,7 +694,7 @@ async function renderForms() {
     </div>`).join('') : '<div style="text-align:center;padding:40px;color:var(--mute)">No hay formularios creados</div>'}`;
 }
 
-function copyFormUrl(slug) { navigator.clipboard.writeText(`${window.location.origin}/api/forms/s/${slug}`); alert('Link copiado al portapapeles'); }
+function copyFormUrl(slug) { navigator.clipboard.writeText(`${window.location.origin}/form/${slug}`); alert('Link copiado al portapapeles'); }
 async function deleteForm(id) { if(!confirm('¿Eliminar este formulario?')) return; await api(`/forms/${id}`,{method:'DELETE'}); renderForms(); }
 
 async function viewSubmissions(formId, formName) {

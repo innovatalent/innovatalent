@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuesta — Innova Talent</title>
+<link rel="icon" type="image/png" href="/assets/innova-logo.png">
+<style>
+  :root{--bg:#0f1117;--bg2:#16181f;--ink:#f0f1f3;--dim:#9ca3af;--line:#2a2d37;--accent:#6366f1;--accent2:#818cf8;--green:#22c55e;--red:#ef4444}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .container{width:100%;max-width:640px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:32px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+  .header h1{font-size:20px;font-weight:600}
+  .badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase}
+  .b-sent,.b-viewed{background:rgba(99,102,241,.15);color:var(--accent2)}
+  .b-accepted{background:rgba(34,197,94,.15);color:var(--green)}
+  .b-rejected{background:rgba(239,68,68,.15);color:var(--red)}
+  .b-draft{background:rgba(107,114,128,.2);color:var(--dim)}
+  .meta{font-size:12px;color:var(--dim);margin-bottom:24px;display:flex;gap:16px;flex-wrap:wrap}
+  table{width:100%;border-collapse:collapse;margin-bottom:20px}
+  th{text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line)}
+  td{padding:10px;font-size:13px;border-bottom:1px solid rgba(42,45,55,.5)}
+  .total-row td{font-weight:600;font-size:15px;border-top:2px solid var(--line);padding-top:12px}
+  .notes{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;font-size:13px;color:var(--dim);margin-bottom:20px;white-space:pre-wrap}
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:24px}
+  .btn{padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+  .btn-accept{background:var(--green);color:#fff}
+  .btn-accept:hover{background:#16a34a}
+  .btn-reject{background:transparent;border:1px solid var(--red);color:var(--red)}
+  .btn-reject:hover{background:rgba(239,68,68,.1)}
+  .loading{text-align:center;padding:60px;color:var(--dim)}
+  .branding{text-align:center;margin-top:16px;font-size:11px;color:var(--dim)}
+  .branding a{color:var(--accent2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card" id="proposalCard">
+    <div class="loading">Cargando propuesta...</div>
+  </div>
+  <div class="branding">Powered by <a href="/">Innova Talent</a></div>
+</div>
+
+<script>
+const proposalId = window.location.pathname.split('/proposal/').pop();
+
+async function load() {
+  const card = document.getElementById('proposalCard');
+  try {
+    const res = await fetch(`/api/proposals/${proposalId}`);
+    if (!res.ok) throw new Error('not found');
+    const p = await res.json();
+
+    document.title = `${p.title} — Propuesta Innova Talent`;
+    const items = typeof p.items === 'string' ? JSON.parse(p.items) : (p.items || []);
+    const canRespond = ['sent','viewed'].includes(p.status);
+
+    card.innerHTML = `
+      <div class="header">
+        <div>
+          <h1>${p.title}</h1>
+          <div style="font-size:12px;color:var(--mute);margin-top:4px">#${p.proposal_number}</div>
+        </div>
+        <span class="badge b-${p.status}">${p.status}</span>
+      </div>
+      <div class="meta">
+        ${p.company_name ? `<span>Para: <strong>${p.company_name}</strong></span>` : ''}
+        <span>Fecha: ${new Date(p.created_at).toLocaleDateString()}</span>
+        ${p.valid_until ? `<span>Válida hasta: ${p.valid_until}</span>` : ''}
+        <span>Moneda: ${(p.currency||'usd').toUpperCase()}</span>
+      </div>
+      <table>
+        <thead><tr><th>Descripción</th><th style="text-align:right">Cant.</th><th style="text-align:right">Precio</th><th style="text-align:right">Subtotal</th></tr></thead>
+        <tbody>
+          ${items.map(i => `<tr><td>${i.description}</td><td style="text-align:right">${i.quantity||1}</td><td style="text-align:right">$${((i.unit_price||0)/100).toFixed(2)}</td><td style="text-align:right">$${(((i.quantity||1)*(i.unit_price||0))/100).toFixed(2)}</td></tr>`).join('')}
+          ${p.tax_amount > 0 ? `<tr><td colspan="3" style="text-align:right;color:var(--dim)">Impuestos (${p.tax_rate}%)</td><td style="text-align:right">$${(p.tax_amount/100).toFixed(2)}</td></tr>` : ''}
+          <tr class="total-row"><td colspan="3" style="text-align:right">Total</td><td style="text-align:right;color:var(--green)">$${(p.total/100).toFixed(2)}</td></tr>
+        </tbody>
+      </table>
+      ${p.notes ? `<div class="notes">${p.notes}</div>` : ''}
+      ${canRespond ? `
+        <div class="actions">
+          <button class="btn btn-accept" onclick="respond('accepted')">Aceptar propuesta</button>
+          <button class="btn btn-reject" onclick="respond('rejected')">Rechazar</button>
+        </div>
+      ` : `<div style="text-align:center;color:var(--dim);font-size:13px;margin-top:16px">${p.status === 'accepted' ? 'Esta propuesta fue aceptada.' : p.status === 'rejected' ? 'Esta propuesta fue rechazada.' : ''}</div>`}
+    `;
+  } catch {
+    card.innerHTML = '<div class="loading" style="color:var(--red)">Propuesta no encontrada.</div>';
+  }
+}
+
+async function respond(action) {
+  if (!confirm(action === 'accepted' ? '¿Confirmar que aceptas esta propuesta?' : '¿Confirmar que rechazas esta propuesta?')) return;
+  try {
+    const res = await fetch(`/api/proposals/${proposalId}/respond`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    alert(data.message);
+    load();
+  } catch (err) {
+    alert(err.message || 'Error al responder');
+  }
+}
+
+load();
+</script>
+</body>
+</html>

@@ -122,7 +122,7 @@ router.post('/:id/send', authenticate, authorize('admin'), async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'No encontrada' });
 
     const proposal = rows[0];
-    const viewUrl = `${env.appUrl}/api/proposals/${proposal.id}`;
+    const viewUrl = `${env.appUrl}/proposal/${proposal.id}`;
 
     await sendEmail({
       to: proposal.email,
