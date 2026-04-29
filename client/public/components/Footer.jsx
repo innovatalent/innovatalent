@@ -14,7 +14,7 @@ function Footer() {
               We build high-performance tech teams. Conectamos talento IT con las startups que están cambiando el mundo.
             </p>
             <div className="flex items-center gap-3 mt-5">
-              <a href="https://ar.linkedin.com/in/mailen-juan-6437b7240" target="_blank" rel="noopener" className="w-9 h-9 rounded-lg border border-line flex items-center justify-center text-dim hover:text-ink hover:border-[var(--accent)] transition">
+              <a href="https://ar.linkedin.com/in/innova-talent-we-create-your-team-161543239" target="_blank" rel="noopener" className="w-9 h-9 rounded-lg border border-line flex items-center justify-center text-dim hover:text-ink hover:border-[var(--accent)] transition">
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 1a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM1 7h5v8H1V7zm7 0h4.7v1.1h.1c.7-1.2 2.2-1.4 3.4-1.4 3.3 0 3.8 2 3.8 4.7V15h-5v-3.5c0-.8 0-1.9-1.3-1.9s-1.5 1-1.5 1.9V15H8V7z" transform="scale(.9)"/></svg>
               </a>
               <a href="https://www.instagram.com/innovatalent.labs" target="_blank" rel="noopener" className="w-9 h-9 rounded-lg border border-line flex items-center justify-center text-dim hover:text-ink hover:border-[var(--accent)] transition">
@@ -54,7 +54,7 @@ function Footer() {
                   <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-mute mb-0.5 mt-2">Consultas generales</div>
                   <a className="hover:text-ink transition" href="mailto:consulting@innovatalentlabs.com">consulting@innovatalentlabs.com</a>
                 </li>
-                <li><a className="hover:text-ink transition" href="https://ar.linkedin.com/in/mailen-juan-6437b7240" target="_blank">LinkedIn</a></li>
+                <li><a className="hover:text-ink transition" href="https://ar.linkedin.com/in/innova-talent-we-create-your-team-161543239" target="_blank">LinkedIn</a></li>
                 <li><a className="hover:text-ink transition" href="https://www.instagram.com/innovatalent.labs" target="_blank">Instagram</a></li>
               </ul>
             </div>
