@@ -53,6 +53,7 @@ app.use('/api/forms', require('./routes/forms'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/google', require('./routes/google'));
 
 // Health check
 app.get('/api/health', async (req, res) => {

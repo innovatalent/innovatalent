@@ -53,6 +53,11 @@ module.exports = {
     model: process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free',
   },
 
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  },
+
   admin: {
     email: process.env.ADMIN_EMAIL || 'admin@innovatalentlabs.com',
     password: process.env.ADMIN_PASSWORD || 'admin123',

@@ -21,6 +21,10 @@ async function init() {
     await pool.query(schemaN8n);
     console.log('[DB] n8n integration schema created');
 
+    const schemaGoogle = fs.readFileSync(path.join(__dirname, 'schema-google.sql'), 'utf8');
+    await pool.query(schemaGoogle);
+    console.log('[DB] Google integration schema created');
+
     // Create admin user
     const passwordHash = await bcrypt.hash(env.admin.password, 12);
     await pool.query(
