@@ -2,7 +2,7 @@ function Footer() {
   return (
     <footer className="relative border-t border-line py-14">
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 md:gap-10 mb-12">
           <div>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="relative w-9 h-9 flex items-center justify-center">
@@ -17,12 +17,12 @@ function Footer() {
               <a href="https://ar.linkedin.com/in/mailen-juan-6437b7240" target="_blank" rel="noopener" className="w-9 h-9 rounded-lg border border-line flex items-center justify-center text-dim hover:text-ink hover:border-[var(--accent)] transition">
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 1a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM1 7h5v8H1V7zm7 0h4.7v1.1h.1c.7-1.2 2.2-1.4 3.4-1.4 3.3 0 3.8 2 3.8 4.7V15h-5v-3.5c0-.8 0-1.9-1.3-1.9s-1.5 1-1.5 1.9V15H8V7z" transform="scale(.9)"/></svg>
               </a>
-              <a href="https://www.instagram.com/innovatalent.hr" target="_blank" rel="noopener" className="w-9 h-9 rounded-lg border border-line flex items-center justify-center text-dim hover:text-ink hover:border-[var(--accent)] transition">
+              <a href="https://www.instagram.com/innovatalent.labs" target="_blank" rel="noopener" className="w-9 h-9 rounded-lg border border-line flex items-center justify-center text-dim hover:text-ink hover:border-[var(--accent)] transition">
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="2" width="12" height="12" rx="3"/><circle cx="8" cy="8" r="3"/><circle cx="11.5" cy="4.5" r=".6" fill="currentColor"/></svg>
               </a>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-8 md:gap-12">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 md:gap-12">
             <div>
               <div className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-mute mb-4">Empresa</div>
               <ul className="space-y-2.5 text-[13.5px] text-dim">
@@ -55,7 +55,7 @@ function Footer() {
                   <a className="hover:text-ink transition" href="mailto:consulting@innovatalentlabs.com">consulting@innovatalentlabs.com</a>
                 </li>
                 <li><a className="hover:text-ink transition" href="https://ar.linkedin.com/in/mailen-juan-6437b7240" target="_blank">LinkedIn</a></li>
-                <li><a className="hover:text-ink transition" href="https://www.instagram.com/innovatalent.hr" target="_blank">Instagram</a></li>
+                <li><a className="hover:text-ink transition" href="https://www.instagram.com/innovatalent.labs" target="_blank">Instagram</a></li>
               </ul>
             </div>
           </div>

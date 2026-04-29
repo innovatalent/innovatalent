@@ -64,7 +64,7 @@ function ContactForm({ onClose, onSuccess }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-panel" onClick={e => e.stopPropagation()} style={{height:'auto',maxHeight:'90vh',overflow:'auto',padding:'32px'}}>
+      <div className="modal-panel" onClick={e => e.stopPropagation()} style={{height:'auto',maxHeight:'90vh',overflow:'auto',padding:'16px'}}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-semibold">Contanos sobre tu empresa</h3>

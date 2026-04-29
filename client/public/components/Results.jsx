@@ -136,7 +136,7 @@ function Results() {
         {/* Client logos */}
         <div className="reveal">
           <div className="font-mono text-[10.5px] uppercase tracking-[0.25em] text-mute text-center mb-8">Armamos equipos para</div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-line border border-line rounded-xl overflow-hidden">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-line border border-line rounded-xl overflow-hidden">
             {[
               { name: 'Emirates Flight Catering', style: 'serif', tag: 'EFC' },
               { name: 'Air Arabia',               style: 'sans',  tag: 'AirArabia' },

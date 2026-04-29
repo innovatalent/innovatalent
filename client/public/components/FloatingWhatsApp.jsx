@@ -33,7 +33,7 @@ function FloatingWhatsApp() {
       target="_blank"
       rel="noopener"
       aria-label={label}
-      className="fixed z-40 bottom-5 right-5 md:bottom-7 md:right-7 group"
+      className="fixed z-40 bottom-5 right-4 sm:right-5 md:bottom-7 md:right-7 group"
       style={{
         opacity: show ? 1 : 0,
         transform: show ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.92)',

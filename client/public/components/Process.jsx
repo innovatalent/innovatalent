@@ -49,13 +49,13 @@ function Process() {
                   <div className="absolute inset-0 rounded-full border border-[var(--accent)] opacity-30 animate-pulse"></div>
                 </div>
 
-                <div className="card flex-1 p-6 md:p-8 grid md:grid-cols-[1fr_1.2fr] gap-6 md:gap-10 items-start">
+                <div className="card flex-1 p-5 sm:p-6 md:p-8 grid md:grid-cols-[1fr_1.2fr] gap-4 md:gap-10 items-start">
                   <div>
                     <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] accent mb-3">{s.kicker}</div>
                     <h3 className="text-[26px] md:text-[32px] font-medium tracking-[-0.02em] mb-3">{s.title}</h3>
                     <p className="text-dim text-[15px] leading-[1.6]">{s.body}</p>
                   </div>
-                  <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                     {s.detail.map(d => (
                       <li key={d} className="flex items-start gap-2 text-[13.5px] text-dim">
                         <svg className="mt-[5px] flex-shrink-0" width="12" height="12" viewBox="0 0 12 12" fill="none">
