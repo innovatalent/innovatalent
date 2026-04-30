@@ -249,15 +249,25 @@ Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automa
 
     const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || 'admin@innovatalent.local';
 
-    const { sendEmail } = require('../services/email');
-    await sendEmail({
-      to: adminEmail,
-      subject,
-      body: `# Informe de Preparación de Reunión\n\n**Tipo:** ${isRecruited ? 'Reclutado' : 'Cliente'}\n**Nombre:** ${name}\n**Email:** ${email || 'N/A'}\n\n---\n\n${report}`,
-      recipientId: 'system',
-      recipientType: 'admin',
-      template: 'meeting_prep_report',
-    });
+    const emailBody = `Informe de Preparación de Reunión\n\nTipo: ${isRecruited ? 'Reclutado' : 'Cliente'}\nNombre: ${name}\nEmail: ${email || 'N/A'}\n\n---\n\n${report}`;
+
+    try {
+      const { Resend } = require('resend');
+      const resendKey = process.env.RESEND_API_KEY;
+      if (resendKey && !resendKey.includes('placeholder')) {
+        const resend = new Resend(resendKey);
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM || 'Innova Talent <hola@innovatalentlabs.com>',
+          to: adminEmail,
+          subject,
+          text: emailBody,
+        });
+      } else {
+        console.log(`[GHL-REPORT] Email (dev mode) To: ${adminEmail} | Subject: ${subject}`);
+      }
+    } catch (emailErr) {
+      console.error('[GHL-REPORT] Email send error:', emailErr.message);
+    }
 
     await db.query(
       `INSERT INTO activity_log (entity_type, entity_id, action, details) VALUES ($1, $2, 'meeting_prep_report', $3)`,
