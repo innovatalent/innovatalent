@@ -146,4 +146,128 @@ router.get('/n8n/ai-conversations', verifyWebhook, async (req, res) => {
   }
 });
 
+// GHL → App: New registration triggers meeting prep report
+router.post('/ghl/new-registration', async (req, res) => {
+  try {
+    const {
+      name, email, phone, type,
+      company, position, vacancy, service,
+      cv_text, requirements, notes
+    } = req.body;
+
+    if (!name || !type) return res.status(400).json({ error: 'name and type are required' });
+
+    const isRecruited = type.toLowerCase().includes('reclut') || type.toLowerCase().includes('candid');
+
+    const systemPrompt = `Sos un analista senior de Innova Talent Labs, consultora de reclutamiento IT y automatización.
+Generás informes de preparación de reunión ultra-concisos y profesionales en español rioplatense.
+
+REGLAS ESTRICTAS:
+- Sé extremadamente conciso. Cero relleno.
+- Detectá Red Flags y Oportunidades de Venta Cruzada en cada reporte.
+- Formato Markdown estructurado.
+- Solo datos relevantes.`;
+
+    const userPrompt = isRecruited
+      ? `NUEVO RECLUTADO REGISTRADO:
+- Nombre: ${name}
+- Email: ${email || 'N/A'}
+- Teléfono: ${phone || 'N/A'}
+- Posición/Vacante: ${vacancy || position || 'N/A'}
+- CV/Experiencia: ${cv_text || notes || 'No proporcionado'}
+
+Generá el Informe de Preparación de Reunión con:
+
+## 📋 Contexto
+Quién es y qué vacante busca.
+
+## 💎 Análisis de Valor
+Por qué es un perfil clave. Puntos fuertes detectados.
+
+## 🚩 Red Flags
+Posibles riesgos o inconsistencias en su perfil.
+
+## 📌 Agenda Propuesta
+3 puntos clave para guiar la reunión.
+
+## 🔬 Preparación Técnica
+Qué evaluar técnicamente, preguntas específicas según su stack.
+
+## ⚡ Oportunidades
+Otras vacantes donde podría encajar.`
+      : `NUEVO CLIENTE REGISTRADO:
+- Nombre: ${name}
+- Empresa: ${company || 'N/A'}
+- Email: ${email || 'N/A'}
+- Teléfono: ${phone || 'N/A'}
+- Servicio de interés: ${service || 'N/A'}
+- Requerimientos: ${requirements || notes || 'No especificados'}
+
+Generá el Informe de Preparación de Reunión con:
+
+## 📋 Contexto
+Quién es, su empresa, y qué busca.
+
+## 💎 Análisis de Valor
+Por qué es un cliente clave. Potencial de facturación.
+
+## 🚩 Red Flags
+Posibles riesgos (presupuesto, timelines irreales, scope creep).
+
+## 📌 Agenda Propuesta
+3 puntos clave de descubrimiento para la reunión.
+
+## 🛠 Preparación Técnica
+Qué soluciones ofrecer según sus necesidades.
+
+## ⚡ Oportunidades de Venta Cruzada
+Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automatización, IA, desarrollo web).`;
+
+    const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        max_tokens: 800,
+        temperature: 0.3,
+      }),
+    });
+
+    const aiData = await aiResponse.json();
+    const report = aiData.choices?.[0]?.message?.content || 'No se pudo generar el informe.';
+
+    const subject = isRecruited
+      ? `[Innova Talent] Informe de Reunión — Reclutado: ${name}`
+      : `[Innova Talent] Informe de Reunión — Cliente: ${name} (${company || 'N/A'})`;
+
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || 'admin@innovatalent.local';
+
+    const { sendEmail } = require('../services/email');
+    await sendEmail({
+      to: adminEmail,
+      subject,
+      body: `# Informe de Preparación de Reunión\n\n**Tipo:** ${isRecruited ? 'Reclutado' : 'Cliente'}\n**Nombre:** ${name}\n**Email:** ${email || 'N/A'}\n\n---\n\n${report}`,
+      recipientType: 'admin',
+      template: 'meeting_prep_report',
+    });
+
+    await db.query(
+      `INSERT INTO activity_log (entity_type, entity_id, action, details) VALUES ($1, $2, 'meeting_prep_report', $3)`,
+      [isRecruited ? 'candidate' : 'client', email || name, JSON.stringify({ name, type, report: report.substring(0, 500) })]
+    );
+
+    res.json({ ok: true, report });
+  } catch (err) {
+    console.error('[GHL] Meeting prep error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,147 @@
+{
+  "name": "GHL → Meeting Prep Report",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ghl-new-registration",
+        "options": {}
+      },
+      "name": "GHL Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "typeVersion": 2,
+      "webhookId": "ghl-meeting-prep"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "reclut",
+              "operator": { "type": "string", "operation": "contains" }
+            }
+          ]
+        }
+      },
+      "name": "Is Recruited?",
+      "type": "n8n-nodes-base.if",
+      "position": [450, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ={{$env.OPENROUTER_API_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"google/gemma-4-31b-it:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Sos un analista senior de Innova Talent Labs. Generás informes de preparación de reunión ultra-concisos en español rioplatense. Detectá Red Flags y Oportunidades. Formato Markdown. Cero relleno.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"NUEVO RECLUTADO:\\n- Nombre: {{ $('GHL Webhook').item.json.name }}\\n- Email: {{ $('GHL Webhook').item.json.email || 'N/A' }}\\n- Vacante: {{ $('GHL Webhook').item.json.vacancy || $('GHL Webhook').item.json.position || 'N/A' }}\\n- CV/Experiencia: {{ $('GHL Webhook').item.json.cv_text || $('GHL Webhook').item.json.notes || 'No proporcionado' }}\\n\\nGenerá informe con: Contexto, Análisis de Valor, Red Flags, Agenda Propuesta (3 puntos), Preparación Técnica (qué evaluar), Oportunidades (otras vacantes donde encaja).\"\n    }\n  ],\n  \"max_tokens\": 800,\n  \"temperature\": 0.3\n}"
+      },
+      "name": "AI Analyze Recruited",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [700, 200],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ={{$env.OPENROUTER_API_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"google/gemma-4-31b-it:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Sos un analista senior de Innova Talent Labs. Generás informes de preparación de reunión ultra-concisos en español rioplatense. Detectá Red Flags y Oportunidades de Venta Cruzada. Formato Markdown. Cero relleno.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"NUEVO CLIENTE:\\n- Nombre: {{ $('GHL Webhook').item.json.name }}\\n- Empresa: {{ $('GHL Webhook').item.json.company || 'N/A' }}\\n- Email: {{ $('GHL Webhook').item.json.email || 'N/A' }}\\n- Servicio: {{ $('GHL Webhook').item.json.service || 'N/A' }}\\n- Requerimientos: {{ $('GHL Webhook').item.json.requirements || $('GHL Webhook').item.json.notes || 'No especificados' }}\\n\\nGenerá informe con: Contexto, Análisis de Valor (potencial facturación), Red Flags (presupuesto, timelines), Agenda Propuesta (3 preguntas de descubrimiento), Preparación Técnica (qué ofrecer), Oportunidades de Venta Cruzada.\"\n    }\n  ],\n  \"max_tokens\": 800,\n  \"temperature\": 0.3\n}"
+      },
+      "name": "AI Analyze Client",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [700, 400],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.EMAIL_FROM || 'Innova Talent <hola@innovatalentlabs.com>'}}",
+        "toEmail": "={{$env.ADMIN_NOTIFICATION_EMAIL || $env.ADMIN_EMAIL || 'admin@innovatalent.local'}}",
+        "subject": "=[Innova Talent] Informe de Reunión — Reclutado: {{ $('GHL Webhook').item.json.name }}",
+        "emailType": "text",
+        "message": "=INFORME DE PREPARACIÓN DE REUNIÓN\n================================\nTipo: Reclutado\nNombre: {{ $('GHL Webhook').item.json.name }}\nEmail: {{ $('GHL Webhook').item.json.email || 'N/A' }}\nVacante: {{ $('GHL Webhook').item.json.vacancy || 'N/A' }}\n\n---\n\n{{ $json.choices[0].message.content }}"
+      },
+      "name": "Email Recruited Report",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [950, 200],
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.EMAIL_FROM || 'Innova Talent <hola@innovatalentlabs.com>'}}",
+        "toEmail": "={{$env.ADMIN_NOTIFICATION_EMAIL || $env.ADMIN_EMAIL || 'admin@innovatalent.local'}}",
+        "subject": "=[Innova Talent] Informe de Reunión — Cliente: {{ $('GHL Webhook').item.json.name }} ({{ $('GHL Webhook').item.json.company || 'N/A' }})",
+        "emailType": "text",
+        "message": "=INFORME DE PREPARACIÓN DE REUNIÓN\n================================\nTipo: Cliente\nNombre: {{ $('GHL Webhook').item.json.name }}\nEmpresa: {{ $('GHL Webhook').item.json.company || 'N/A' }}\nEmail: {{ $('GHL Webhook').item.json.email || 'N/A' }}\nServicio: {{ $('GHL Webhook').item.json.service || 'N/A' }}\n\n---\n\n{{ $json.choices[0].message.content }}"
+      },
+      "name": "Email Client Report",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [950, 400],
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "url": "={{$env.APP_URL}}/api/webhooks/n8n/notify",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{$env.WEBHOOK_SECRET}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"meeting_prep_report\",\n  \"title\": \"Informe de Reunión generado\",\n  \"message\": \"Se generó un informe de preparación para {{ $('GHL Webhook').item.json.type }}: {{ $('GHL Webhook').item.json.name }}\"\n}"
+      },
+      "name": "Log to App",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1150, 300],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "GHL Webhook": {
+      "main": [[{ "node": "Is Recruited?", "type": "main", "index": 0 }]]
+    },
+    "Is Recruited?": {
+      "main": [
+        [{ "node": "AI Analyze Recruited", "type": "main", "index": 0 }],
+        [{ "node": "AI Analyze Client", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Analyze Recruited": {
+      "main": [[{ "node": "Email Recruited Report", "type": "main", "index": 0 }]]
+    },
+    "AI Analyze Client": {
+      "main": [[{ "node": "Email Client Report", "type": "main", "index": 0 }]]
+    },
+    "Email Recruited Report": {
+      "main": [[{ "node": "Log to App", "type": "main", "index": 0 }]]
+    },
+    "Email Client Report": {
+      "main": [[{ "node": "Log to App", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "innova-talent" }, { "name": "ghl" }]
+}
