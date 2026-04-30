@@ -26,6 +26,17 @@ app.use(cors({
 // Rate limiting
 app.use(globalLimiter);
 
+// Redirect non-www to www in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const host = req.headers.host || '';
+    if (host === 'innovatalentlabs.com') {
+      return res.redirect(301, `https://www.innovatalentlabs.com${req.originalUrl}`);
+    }
+    next();
+  });
+}
+
 // Body parsing (raw for Stripe webhook)
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '1mb' }));
