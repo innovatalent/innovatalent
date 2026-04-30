@@ -223,20 +223,18 @@ Qué soluciones ofrecer según sus necesidades.
 ## ⚡ Oportunidades de Venta Cruzada
 Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automatización, IA, desarrollo web).`;
 
-    let report = 'No se pudo generar el informe.';
-    try {
-      const https = require('https');
-      const payload = JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        max_tokens: 800,
-        temperature: 0.3,
-      });
+    const FREE_MODELS = [
+      'google/gemma-4-31b-it:free',
+      'nvidia/nemotron-3-super-120b-a12b:free',
+      'qwen/qwen3-next-80b-a3b-instruct:free',
+      'deepseek/deepseek-chat-v3-0324:free',
+      'openrouter/free',
+    ];
 
-      const aiData = await new Promise((resolve, reject) => {
+    const https = require('https');
+    function callOpenRouterModel(model, messages) {
+      const payload = JSON.stringify({ model, messages, max_tokens: 800, temperature: 0.3 });
+      return new Promise((resolve, reject) => {
         const req = https.request('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -248,18 +246,31 @@ Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automa
           let data = '';
           res.on('data', chunk => data += chunk);
           res.on('end', () => {
-            try { resolve(JSON.parse(data)); } catch (e) { reject(new Error('Invalid AI response: ' + data.substring(0, 200))); }
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.error) reject(new Error(parsed.error.message || JSON.stringify(parsed.error)));
+              else resolve(parsed);
+            } catch (e) { reject(new Error('Invalid response')); }
           });
         });
         req.on('error', reject);
         req.write(payload);
         req.end();
       });
+    }
 
-      report = aiData.choices?.[0]?.message?.content || `AI error: ${JSON.stringify(aiData.error || aiData).substring(0, 300)}`;
-    } catch (aiErr) {
-      console.error('[GHL-REPORT] AI error:', aiErr.message);
-      report = 'Error al generar informe con IA: ' + aiErr.message;
+    let report = 'No se pudo generar el informe.';
+    const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
+
+    for (const model of FREE_MODELS) {
+      try {
+        console.log(`[GHL-REPORT] Trying model: ${model}`);
+        const aiData = await callOpenRouterModel(model, messages);
+        const content = aiData.choices?.[0]?.message?.content;
+        if (content) { report = content; break; }
+      } catch (e) {
+        console.warn(`[GHL-REPORT] Model ${model} failed: ${e.message}`);
+      }
     }
 
     const subject = isRecruited
