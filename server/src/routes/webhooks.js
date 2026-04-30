@@ -223,13 +223,10 @@ Qué soluciones ofrecer según sus necesidades.
 ## ⚡ Oportunidades de Venta Cruzada
 Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automatización, IA, desarrollo web).`;
 
-    const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    let report = 'No se pudo generar el informe.';
+    try {
+      const https = require('https');
+      const payload = JSON.stringify({
         model: process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
         messages: [
           { role: 'system', content: systemPrompt },
@@ -237,11 +234,33 @@ Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automa
         ],
         max_tokens: 800,
         temperature: 0.3,
-      }),
-    });
+      });
 
-    const aiData = await aiResponse.json();
-    const report = aiData.choices?.[0]?.message?.content || 'No se pudo generar el informe.';
+      const aiData = await new Promise((resolve, reject) => {
+        const req = https.request('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+          },
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try { resolve(JSON.parse(data)); } catch (e) { reject(new Error('Invalid AI response: ' + data.substring(0, 200))); }
+          });
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+      });
+
+      report = aiData.choices?.[0]?.message?.content || `AI error: ${JSON.stringify(aiData.error || aiData).substring(0, 300)}`;
+    } catch (aiErr) {
+      console.error('[GHL-REPORT] AI error:', aiErr.message);
+      report = 'Error al generar informe con IA: ' + aiErr.message;
+    }
 
     const subject = isRecruited
       ? `[Innova Talent] Informe de Reunión — Reclutado: ${name}`
