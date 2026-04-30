@@ -1148,9 +1148,10 @@ async function renderSettings() {
 
 async function connectGoogle() {
   try {
-    const { url } = await api('/google/auth');
-    window.open(url, '_blank', 'width=600,height=700');
-    setTimeout(() => renderSettings(), 10000);
+    const data = await api('/google/auth');
+    if (data.error) { alert('Error: ' + data.error); return; }
+    if (!data.url) { alert('No se recibió URL de Google. Verificá GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET.'); return; }
+    window.location.href = data.url;
   } catch (e) {
     alert('Error: ' + (e.message || 'No se pudo conectar con Google. Verificá las variables de entorno.'));
   }

@@ -36,7 +36,8 @@ router.get('/callback', async (req, res) => {
     );
 
     res.send(`<html><body style="background:#0f1117;color:#f0f1f3;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-      <div style="text-align:center"><h2>Google conectado correctamente</h2><p>Podés cerrar esta ventana y volver al dashboard.</p></div>
+      <div style="text-align:center"><h2>Google conectado correctamente</h2><p>Redirigiendo al dashboard...</p></div>
+      <script>setTimeout(()=>window.location.href='/dashboard/admin.html',2000)</script>
     </body></html>`);
   } catch (err) {
     console.error('[Google] Callback error:', err.message);
