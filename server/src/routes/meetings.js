@@ -4,6 +4,7 @@ const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
 const { sendEmail } = require('../services/email');
 const env = require('../config/env');
+const { getCalendarService } = require('../services/google');
 
 const router = Router();
 
@@ -93,11 +94,46 @@ router.post('/', validateBody({
 
     const meeting = rows[0];
 
-    // Send confirmation email
+    // Auto-sync to Google Calendar with Meet link
+    let meetLink = '';
+    try {
+      const { rows: tokenRows } = await db.query('SELECT tokens FROM google_tokens WHERE id = $1', ['admin']);
+      if (tokenRows.length) {
+        const tokens = JSON.parse(tokenRows[0].tokens);
+        const calendar = getCalendarService(tokens);
+        const startDateTime = new Date(`${date}T${start_time}:00-03:00`);
+        const endDateTime = new Date(`${date}T${endTime}:00-03:00`);
+
+        const calEvent = await calendar.events.insert({
+          calendarId: 'primary',
+          conferenceDataVersion: 1,
+          requestBody: {
+            summary: `Diagnóstico — ${name || email}`,
+            description: `Contacto: ${name || 'N/A'}\nEmail: ${email}\n${notes ? `Notas: ${notes}` : ''}`,
+            start: { dateTime: startDateTime.toISOString(), timeZone: 'America/Argentina/Buenos_Aires' },
+            end: { dateTime: endDateTime.toISOString(), timeZone: 'America/Argentina/Buenos_Aires' },
+            attendees: [{ email }],
+            conferenceData: {
+              createRequest: { requestId: meeting.id, conferenceSolutionKey: { type: 'hangoutsMeet' } }
+            },
+            reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 15 }, { method: 'email', minutes: 60 }] },
+          },
+        });
+
+        meetLink = calEvent.data.hangoutLink || calEvent.data.conferenceData?.entryPoints?.[0]?.uri || '';
+        await db.query('UPDATE meetings SET meet_link = $1, google_event_id = $2 WHERE id = $3', [meetLink, calEvent.data.id, meeting.id]);
+        meeting.meet_link = meetLink;
+        meeting.google_event_id = calEvent.data.id;
+      }
+    } catch (calErr) {
+      console.error('[MEETING] Google Calendar sync error:', calErr.message);
+    }
+
+    // Send confirmation email with Meet link
     sendEmail({
       to: email,
       subject: 'Reunión confirmada con Innova Talent',
-      body: `Hola${name ? ` ${name}` : ''},\n\nTu reunión está confirmada:\n\n📅 Fecha: ${date}\n🕐 Hora: ${start_time} - ${endTime} (Buenos Aires)\n\nNos conectaremos por Google Meet. Recibirás el link 24hs antes.\n\n¿Necesitás cambiar el horario? Respondé este email.\n\nSaludos,\nEquipo Innova Talent`,
+      body: `Hola${name ? ` ${name}` : ''},\n\nTu reunión está confirmada:\n\n📅 Fecha: ${date}\n🕐 Hora: ${start_time} - ${endTime} (Buenos Aires)\n${meetLink ? `🔗 Google Meet: ${meetLink}\n` : ''}\n¿Necesitás cambiar el horario? Respondé este email.\n\nSaludos,\nEquipo Innova Talent`,
       recipientId: resolvedClientId || meeting.id,
       recipientType: 'client',
       template: 'meeting_confirmation',
@@ -107,7 +143,7 @@ router.post('/', validateBody({
     sendEmail({
       to: env.admin.email,
       subject: `📅 Nueva reunión: ${date} ${start_time}`,
-      body: `Nueva reunión agendada:\n\nContacto: ${name || 'N/A'}\nEmail: ${email}\nFecha: ${date}\nHora: ${start_time} - ${endTime}\nNotas: ${notes || 'N/A'}`,
+      body: `Nueva reunión agendada:\n\nContacto: ${name || 'N/A'}\nEmail: ${email}\nFecha: ${date}\nHora: ${start_time} - ${endTime}\n${meetLink ? `Meet: ${meetLink}\n` : ''}Notas: ${notes || 'N/A'}`,
       recipientId: meeting.id,
       recipientType: 'client',
       template: 'admin_meeting_notification',
@@ -187,90 +223,6 @@ router.put('/admin/slots', authenticate, authorize('admin'), async (req, res) =>
     res.json({ message: 'Horarios actualizados' });
   } catch (err) {
     res.status(500).json({ error: 'Error interno' });
-  }
-});
-
-// Calendly webhook — receives event when someone books
-router.post('/calendly-webhook', async (req, res) => {
-  try {
-    const { event, payload } = req.body;
-
-    if (event === 'invitee.created') {
-      const invitee = payload?.invitee || payload;
-      const scheduledEvent = payload?.event || payload?.scheduled_event || {};
-
-      const name = invitee?.name || invitee?.first_name || '';
-      const email = invitee?.email || '';
-      const startTime = scheduledEvent?.start_time || scheduledEvent?.start || '';
-      const endTime = scheduledEvent?.end_time || scheduledEvent?.end || '';
-      const meetLink = scheduledEvent?.location?.join_url || scheduledEvent?.location?.data || '';
-      const notes = (invitee?.questions_and_answers || []).map(q => `${q.question}: ${q.answer}`).join('\n') || invitee?.text_reminder_number || '';
-
-      if (!startTime) {
-        console.log('[CALENDLY] Webhook received but no start_time found');
-        return res.json({ ok: true });
-      }
-
-      const startDate = new Date(startTime);
-      const endDate = new Date(endTime);
-      const date = startDate.toISOString().split('T')[0];
-      const start = startDate.toTimeString().slice(0, 5);
-      const end = endDate.toTimeString().slice(0, 5);
-
-      let clientId = null;
-      if (email) {
-        const { rows: clients } = await db.query('SELECT id FROM clients WHERE email = $1', [email]);
-        if (clients.length) {
-          clientId = clients[0].id;
-        } else {
-          const { rows: newClient } = await db.query(
-            `INSERT INTO clients (company_name, contact_name, email, source, pipeline_status)
-             VALUES ($1, $2, $3, 'calendly', 'contacted') RETURNING id`,
-            [name || email, name, email]
-          );
-          clientId = newClient[0].id;
-        }
-      }
-
-      const { rows: existing } = await db.query(
-        `SELECT id FROM meetings WHERE date = $1 AND start_time = $2 AND client_id = $3`,
-        [date, start, clientId]
-      );
-
-      if (!existing.length) {
-        await db.query(
-          `INSERT INTO meetings (client_id, date, start_time, end_time, meet_link, notes, source)
-           VALUES ($1, $2, $3, $4, $5, $6, 'calendly')`,
-          [clientId, date, start, end, meetLink, notes]
-        );
-        console.log(`[CALENDLY] Meeting created: ${date} ${start} — ${name} (${email})`);
-      }
-    }
-
-    if (event === 'invitee.canceled') {
-      const invitee = payload?.invitee || payload;
-      const email = invitee?.email || '';
-      const scheduledEvent = payload?.event || payload?.scheduled_event || {};
-      const startTime = scheduledEvent?.start_time || scheduledEvent?.start || '';
-
-      if (email && startTime) {
-        const startDate = new Date(startTime);
-        const date = startDate.toISOString().split('T')[0];
-        const start = startDate.toTimeString().slice(0, 5);
-
-        await db.query(
-          `UPDATE meetings SET status = 'canceled' WHERE date = $1 AND start_time = $2
-           AND client_id IN (SELECT id FROM clients WHERE email = $3)`,
-          [date, start, email]
-        );
-        console.log(`[CALENDLY] Meeting canceled: ${date} ${start} — ${email}`);
-      }
-    }
-
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('[CALENDLY] Webhook error:', err.message);
-    res.json({ ok: true });
   }
 });
 

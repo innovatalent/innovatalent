@@ -145,7 +145,7 @@ function WhatWeDo() {
               <div className="text-dim text-[14px]">Diagnóstico sin costo · Respuesta rápida · Cupos limitados esta semana</div>
             </div>
             <div className="flex flex-col-reverse sm:flex-row gap-3 w-full md:w-auto">
-              <a href="https://calendly.com/innovatalentlabs/30min" target="_blank" rel="noopener" className="btn-primary !text-[14px] !px-5 !py-3 justify-center whitespace-nowrap">
+              <a href="#top" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('open-booking')); }} className="btn-primary !text-[14px] !px-5 !py-3 justify-center whitespace-nowrap cursor-pointer">
                 Agendar diagnóstico
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </a>

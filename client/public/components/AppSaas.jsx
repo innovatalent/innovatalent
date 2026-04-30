@@ -1,6 +1,6 @@
 function App() {
   const [tweaks, setTweaks] = React.useState(window.__TWEAKS);
-  const [calendlyOpen, setCalendlyOpen] = React.useState(false);
+  const [bookingOpen, setBookingOpen] = React.useState(false);
   const [contactOpen, setContactOpen] = React.useState(false);
 
   const setTweak = (k, v) => setTweaks(prev => ({ ...prev, [k]: v }));
@@ -30,27 +30,33 @@ function App() {
     return () => { observer.disconnect(); mo.disconnect(); };
   }, []);
 
-  const openCalendly = () => setCalendlyOpen(true);
+  const openBooking = () => setBookingOpen(true);
   const openContact = () => setContactOpen(true);
+
+  React.useEffect(() => {
+    const handler = () => setBookingOpen(true);
+    window.addEventListener('open-booking', handler);
+    return () => window.removeEventListener('open-booking', handler);
+  }, []);
 
   return (
     <>
-      <Nav onCTA={openContact} onCalendly={openCalendly} />
+      <Nav onCTA={openContact} onBooking={openBooking} />
       <main>
-        <Hero onCTA={openContact} onCalendly={openCalendly} showParticles={tweaks.showParticles} />
+        <Hero onCTA={openContact} onBooking={openBooking} showParticles={tweaks.showParticles} />
         <WhatWeDo />
         <Problem />
         <Process />
         <Network density={tweaks.networkDensity} />
         <Team />
         <Results />
-        <FinalCTA onCTA={openCalendly} />
+        <FinalCTA onCTA={openBooking} />
       </main>
       <Footer />
       <FloatingWhatsApp />
       <AiChat />
       {contactOpen && <ContactForm onClose={() => setContactOpen(false)} />}
-      <CalendlyModal open={calendlyOpen} onClose={() => setCalendlyOpen(false)} calendlyUrl={tweaks.calendlyUrl} />
+      <BookingModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
     </>
   );
 }

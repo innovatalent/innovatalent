@@ -1,4 +1,4 @@
-function Hero({ onCTA, onCalendly, showParticles }) {
+function Hero({ onCTA, onBooking, showParticles }) {
   const particles = React.useMemo(() => {
     if (!showParticles) return [];
     return Array.from({ length: 26 }, (_, i) => ({
@@ -51,7 +51,7 @@ function Hero({ onCTA, onCalendly, showParticles }) {
               Contanos tu necesidad
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <button onClick={onCalendly} className="btn-ghost justify-center cursor-pointer">
+            <button onClick={onBooking} className="btn-ghost justify-center cursor-pointer">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
               Agendar diagnóstico
             </button>

@@ -1,4 +1,4 @@
-function Nav({ onCTA, onCalendly }) {
+function Nav({ onCTA, onBooking }) {
   const [scrolled, setScrolled] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
 
@@ -39,7 +39,7 @@ function Nav({ onCTA, onCalendly }) {
         </nav>
         <div className="flex items-center gap-3">
           <a href="/auth/login.html" className="hidden sm:inline text-[14px] text-dim hover:text-ink transition">Ingresar</a>
-          <button onClick={onCalendly} className="btn-primary !py-2.5 !px-4 !text-[13px] sm:!text-[14px] cursor-pointer hidden sm:inline-flex">
+          <button onClick={onBooking} className="btn-primary !py-2.5 !px-4 !text-[13px] sm:!text-[14px] cursor-pointer hidden sm:inline-flex">
             Agendar diagnóstico
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
@@ -59,7 +59,7 @@ function Nav({ onCTA, onCalendly }) {
               <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="text-[18px] text-dim hover:text-ink transition py-3 border-b border-line">{l.label}</a>
             ))}
             <a href="/auth/login.html" className="text-[18px] text-dim hover:text-ink transition py-3 border-b border-line">Ingresar</a>
-            <button onClick={() => { setMenuOpen(false); onCalendly(); }} className="btn-primary justify-center mt-4 cursor-pointer">
+            <button onClick={() => { setMenuOpen(false); onBooking(); }} className="btn-primary justify-center mt-4 cursor-pointer">
               Agendar diagnóstico
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>

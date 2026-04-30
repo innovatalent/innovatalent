@@ -32,23 +32,23 @@ function App() {
     return () => { observer.disconnect(); mo.disconnect(); };
   }, []);
 
-  const openCalendly = () => setModalOpen(true);
+  const openBooking = () => setModalOpen(true);
 
   return (
     <>
-      <Nav onCTA={openCalendly} />
+      <Nav onCTA={openBooking} />
       <main>
-        <Hero onCTA={openCalendly} showParticles={tweaks.showParticles} />
+        <Hero onCTA={openBooking} showParticles={tweaks.showParticles} />
         <WhatWeDo />
         <Problem />
         <Process />
         <Network density={tweaks.networkDensity} />
         <Team />
         <Results />
-        <FinalCTA onCTA={openCalendly} />
+        <FinalCTA onCTA={openBooking} />
       </main>
       <Footer />
-      <CalendlyModal open={modalOpen} onClose={() => setModalOpen(false)} calendlyUrl={tweaks.calendlyUrl} />
+      <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
       <FloatingWhatsApp />
       <Tweaks tweaks={tweaks} setTweak={setTweak} />
     </>

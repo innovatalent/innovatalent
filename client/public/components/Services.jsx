@@ -1,6 +1,6 @@
 function Services() {
   const WA_AUTOMATION = 'https://wa.me/542616042245';
-  const CALENDLY = 'https://calendly.com/innovatalentlabs/30min';
+  const openBooking = () => window.dispatchEvent(new CustomEvent('open-booking'));
   const services = [
     {
       num: '01',
@@ -96,7 +96,7 @@ function Services() {
             <a href="mailto:data@innovatalentlabs.com" className="inline-block mt-2 font-mono text-[11px] uppercase tracking-wider text-mute hover:text-ink transition">data@innovatalentlabs.com</a>
           </div>
           <div className="flex flex-col-reverse sm:flex-row gap-3 w-full md:w-auto">
-            <a href={CALENDLY} target="_blank" rel="noopener" className="btn-primary !text-[14px] !px-5 !py-3 justify-center whitespace-nowrap">
+            <a href="#top" onClick={(e) => { e.preventDefault(); openBooking(); }} className="btn-primary !text-[14px] !px-5 !py-3 justify-center whitespace-nowrap cursor-pointer">
               Reservar reunión
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </a>
