@@ -50,6 +50,7 @@ function App() {
         <Network density={tweaks.networkDensity} />
         <Team />
         <Results />
+        <Pricing />
         <FinalCTA onCTA={openBooking} />
       </main>
       <Footer />

@@ -19,6 +19,7 @@ function Nav({ onCTA, onBooking }) {
     { href: '#network', label: 'Red' },
     { href: '#team', label: 'Equipo' },
     { href: '#results', label: 'Resultados' },
+    { href: '#pricing', label: 'Planes' },
   ];
 
   const Logo = () => (

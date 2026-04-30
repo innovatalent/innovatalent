@@ -136,6 +136,12 @@ router.post('/webhook', require('express').raw({ type: 'application/json' }), as
   res.json({ received: true });
 });
 
+// Mercado Pago payment link
+router.get('/mercadopago', authenticate, (req, res) => {
+  const mpLink = process.env.MERCADOPAGO_LINK || 'https://link.mercadopago.com.ar/leonelj';
+  res.json({ url: mpLink });
+});
+
 // Get subscription status
 router.get('/subscription', authenticate, async (req, res) => {
   try {
