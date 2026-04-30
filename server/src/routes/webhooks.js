@@ -271,7 +271,7 @@ Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automa
 
     await db.query(
       `INSERT INTO activity_log (entity_type, entity_id, action, details) VALUES ($1, $2, 'meeting_prep_report', $3)`,
-      [isRecruited ? 'candidate' : 'client', email || name, JSON.stringify({ name, type, report: report.substring(0, 500) })]
+      [isRecruited ? 'candidate' : 'client', null, JSON.stringify({ name, email, type, report: report.substring(0, 500) })]
     );
 
     res.json({ ok: true, report });
