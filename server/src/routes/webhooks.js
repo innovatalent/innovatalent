@@ -254,6 +254,7 @@ Otros servicios de Innova Talent que podrían interesarle (reclutamiento, automa
       to: adminEmail,
       subject,
       body: `# Informe de Preparación de Reunión\n\n**Tipo:** ${isRecruited ? 'Reclutado' : 'Cliente'}\n**Nombre:** ${name}\n**Email:** ${email || 'N/A'}\n\n---\n\n${report}`,
+      recipientId: 'system',
       recipientType: 'admin',
       template: 'meeting_prep_report',
     });
