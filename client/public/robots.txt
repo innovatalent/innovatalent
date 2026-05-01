@@ -4,3 +4,23 @@ Disallow: /api/
 Disallow: /dashboard/
 
 Sitemap: https://www.innovatalentlabs.com/sitemap.xml
+
+# AI crawler guidance
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
