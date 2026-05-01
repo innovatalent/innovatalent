@@ -81,11 +81,7 @@ function Pricing() {
 
         <div className="reveal reveal-delay-4 mt-8 text-center">
           <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg border border-line bg-surface">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{opacity:0.6}}>
-              <rect width="24" height="24" rx="4" fill="#00b1ea"/>
-              <path d="M6 12.5c0-2.5 2-4.5 4.5-4.5 1.5 0 2.8.7 3.5 1.8.7-1.1 2-1.8 3.5-1.8 2.5 0 4.5 2 4.5 4.5S20 17 17.5 17c-1.5 0-2.8-.7-3.5-1.8-.7 1.1-2 1.8-3.5 1.8C8 17 6 15 6 12.5z" fill="#fff"/>
-            </svg>
-            <span className="text-[12px] font-medium" style={{color:'#00b1ea', opacity:0.7}}>Mercado Pago</span>
+            <img src="assets/mercado-pago.png" alt="Mercado Pago" style={{height:'22px'}} />
             <span className="text-[12px] text-mute">Pagos seguros con Mercado Pago</span>
           </div>
         </div>
