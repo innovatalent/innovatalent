@@ -54,8 +54,15 @@ function ContactForm({ onClose, onSuccess }) {
           <div className="text-center">
             <div className="text-5xl mb-4">🚀</div>
             <h3 className="text-2xl font-semibold mb-3">¡Solicitud recibida!</h3>
-            <p className="text-dim text-lg mb-6">Te contactaremos en menos de 24 horas.</p>
-            <button className="btn-primary" onClick={onClose}>Cerrar</button>
+            <p className="text-dim text-lg mb-4">Te contactaremos en menos de 24 horas.</p>
+            <p className="text-dim text-[14px] mb-6">Mientras tanto, podés agendar una reunión de diagnóstico gratuita.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button className="btn-primary" onClick={() => { onClose(); setTimeout(() => window.dispatchEvent(new CustomEvent('open-booking')), 200); }}>
+                Agendar reunión
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <button className="btn-ghost" onClick={onClose}>Cerrar</button>
+            </div>
           </div>
         </div>
       </div>

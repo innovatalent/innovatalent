@@ -39,6 +39,12 @@ function App() {
     return () => window.removeEventListener('open-booking', handler);
   }, []);
 
+  React.useEffect(() => {
+    const handler = () => setContactOpen(true);
+    window.addEventListener('open-contact', handler);
+    return () => window.removeEventListener('open-contact', handler);
+  }, []);
+
   return (
     <>
       <Nav onCTA={openContact} onBooking={openBooking} />
