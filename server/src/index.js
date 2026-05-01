@@ -30,7 +30,7 @@ app.use(globalLimiter);
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     const host = req.headers.host || '';
-    if (host === 'innovatalentlabs.com') {
+    if (host !== 'www.innovatalentlabs.com') {
       return res.redirect(301, `https://www.innovatalentlabs.com${req.originalUrl}`);
     }
     next();
