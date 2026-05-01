@@ -24,7 +24,7 @@ function FloatingWhatsApp() {
   }, []);
 
   const isAutomation = mode === 'automation';
-  const href = 'https://w.app/innovatalentlabs';
+  const href = 'https://wa.me/542616042245?text=Hola%2C%20quiero%20info%20sobre%20Innova%20Talent%20Labs';
   const label = isAutomation ? 'Consultá por automatización · data · web' : 'Hablemos por WhatsApp';
 
   return (

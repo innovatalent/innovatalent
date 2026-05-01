@@ -36,7 +36,7 @@ function FinalCTA({ onCTA }) {
               <button onClick={onCTA} className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1 cursor-pointer">
                 Reservar reunión <Arrow />
               </button>
-              <a href="https://w.app/innovatalentlabs" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
+              <a href="https://wa.me/542616042245?text=Hola%2C%20quiero%20info%20sobre%20reclutamiento%20IT" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
                 <WaIcon size={14} /> WhatsApp
               </a>
             </div>
@@ -52,7 +52,7 @@ function FinalCTA({ onCTA }) {
               <button onClick={onCTA} className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1 cursor-pointer">
                 Agendar diagnóstico <Arrow />
               </button>
-              <a href="https://w.app/innovatalentdata" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
+              <a href="https://wa.me/542616042245?text=Hola%2C%20quiero%20consultar%20por%20automatizaci%C3%B3n%20%2F%20web%20%2F%20data" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
                 <WaIcon size={14} /> WhatsApp
               </a>
             </div>
