@@ -70,6 +70,19 @@ function WhatWeDo() {
     },
     {
       num: '06',
+      title: 'Meta Ads y marketing digital',
+      desc: 'Campañas en Facebook e Instagram Ads. Estrategia, segmentación, optimización de conversiones y reportes de rendimiento.',
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="10" stroke="currentColor" strokeWidth="1.4"/>
+          <path d="M14 8v6l4 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          <path d="M8 4l-3 3M20 4l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        </svg>
+      ),
+      tags: ['Facebook Ads', 'Instagram Ads', 'Segmentación', 'Conversiones']
+    },
+    {
+      num: '07',
       title: 'Ciencia de datos & BI',
       desc: 'Transformamos datos en decisiones — dashboards, KPIs y predicciones que mueven el negocio.',
       icon: (
@@ -129,9 +142,9 @@ function WhatWeDo() {
           <div className="reveal flex items-center gap-4 mb-8">
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] accent">02 · Tecnología</div>
             <div className="flex-1 h-px bg-line"></div>
-            <div className="font-mono text-[10.5px] uppercase tracking-wider text-mute">Automatización · Web · Data</div>
+            <div className="font-mono text-[10.5px] uppercase tracking-wider text-mute">Automatización · Web · Ads · Data</div>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {tech.map((s, i) => (
               <Card key={s.num} s={s} delayClass={`reveal-delay-${i+1}`} />
             ))}
