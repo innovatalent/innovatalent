@@ -33,7 +33,7 @@ function FinalCTA() {
             <div className="text-[20px] md:text-[22px] font-medium tracking-tight mb-2">Reclutamiento IT</div>
             <div className="text-dim text-[14.5px] leading-[1.55] mb-6">Buscamos, evaluamos y entregamos perfiles tech para tu equipo.</div>
             <div className="flex flex-col sm:flex-row gap-3 mt-auto">
-              <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20info%20sobre%20reclutamiento%20IT" target="_blank" rel="noopener" className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
+              <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20info%20sobre%20reclutamiento%20IT" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
                 <WaIcon size={14} /> Contactar por WhatsApp
               </a>
             </div>
@@ -46,7 +46,7 @@ function FinalCTA() {
             <div className="text-[20px] md:text-[22px] font-medium tracking-tight mb-2">Automatización · Web · Data</div>
             <div className="text-dim text-[14.5px] leading-[1.55] mb-6">Contanos qué querés automatizar primero en tu empresa.</div>
             <div className="flex flex-col sm:flex-row gap-3 mt-auto">
-              <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20consultar%20por%20automatizaci%C3%B3n%20%2F%20web%20%2F%20data" target="_blank" rel="noopener" className="btn-primary !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
+              <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20consultar%20por%20automatizaci%C3%B3n%20%2F%20web%20%2F%20data" target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center flex-1" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
                 <WaIcon size={14} /> Contactar por WhatsApp
               </a>
             </div>
