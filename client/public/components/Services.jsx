@@ -1,6 +1,5 @@
 function Services() {
-  const WA_AUTOMATION = 'https://wa.me/542616042245';
-  const openBooking = () => window.dispatchEvent(new CustomEvent('open-booking'));
+  const WA_AUTOMATION = 'https://wa.me/5492617172768';
   const services = [
     {
       num: '01',
@@ -92,12 +91,12 @@ function Services() {
           <div>
             <div className="font-mono text-[10.5px] uppercase tracking-[0.22em] accent mb-2">Línea directa · Automatización · Data · Web</div>
             <div className="text-[20px] md:text-[22px] font-medium tracking-tight mb-1">¿Querés ver qué automatizar primero en tu empresa?</div>
-            <div className="text-dim text-[14.5px]">Diagnóstico sin costo · Respuesta rápida · Cupos limitados esta semana</div>
+            <div className="text-dim text-[14.5px]">Respuesta rápida · Cupos limitados esta semana</div>
             <a href="mailto:data@innovatalentlabs.com" className="inline-block mt-2 font-mono text-[11px] uppercase tracking-wider text-mute hover:text-ink transition">data@innovatalentlabs.com</a>
           </div>
           <div className="flex flex-col-reverse sm:flex-row gap-3 w-full md:w-auto">
-            <a href="#top" onClick={(e) => { e.preventDefault(); openBooking(); }} className="btn-primary !text-[14px] !px-5 !py-3 justify-center whitespace-nowrap cursor-pointer">
-              Reservar reunión
+            <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20consultar%20por%20automatizaci%C3%B3n%20%2F%20web%20%2F%20data" target="_blank" rel="noopener" className="btn-primary !text-[14px] !px-5 !py-3 justify-center whitespace-nowrap cursor-pointer">
+              Contactar por WhatsApp
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </a>
             <a href={WA_AUTOMATION} target="_blank" rel="noopener" className="btn-ghost !text-[14px] !px-5 !py-3 justify-center whitespace-nowrap" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>

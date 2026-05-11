@@ -1,6 +1,5 @@
 function App() {
   const [tweaks, setTweaks] = React.useState(window.__TWEAKS);
-  const [bookingOpen, setBookingOpen] = React.useState(false);
   const [contactOpen, setContactOpen] = React.useState(false);
 
   const setTweak = (k, v) => setTweaks(prev => ({ ...prev, [k]: v }));
@@ -30,14 +29,7 @@ function App() {
     return () => { observer.disconnect(); mo.disconnect(); };
   }, []);
 
-  const openBooking = () => setBookingOpen(true);
   const openContact = () => setContactOpen(true);
-
-  React.useEffect(() => {
-    const handler = () => setBookingOpen(true);
-    window.addEventListener('open-booking', handler);
-    return () => window.removeEventListener('open-booking', handler);
-  }, []);
 
   React.useEffect(() => {
     const handler = () => setContactOpen(true);
@@ -47,23 +39,21 @@ function App() {
 
   return (
     <>
-      <Nav onCTA={openContact} onBooking={openBooking} />
+      <Nav />
       <main>
-        <Hero onCTA={openContact} onBooking={openBooking} showParticles={tweaks.showParticles} />
+        <Hero showParticles={tweaks.showParticles} />
         <WhatWeDo />
         <Problem />
         <Process />
         <Network density={tweaks.networkDensity} />
         <Team />
         <Results />
-        <Pricing />
-        <FinalCTA onCTA={openBooking} />
+        <FinalCTA />
       </main>
       <Footer />
       <FloatingWhatsApp />
       <AiChat />
       {contactOpen && <ContactForm onClose={() => setContactOpen(false)} />}
-      <BookingModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
     </>
   );
 }

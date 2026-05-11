@@ -1,6 +1,5 @@
 function App() {
   const [tweaks, setTweaks] = React.useState(window.__TWEAKS);
-  const [modalOpen, setModalOpen] = React.useState(false);
 
   const setTweak = (k, v) => setTweaks(prev => ({ ...prev, [k]: v }));
 
@@ -32,23 +31,20 @@ function App() {
     return () => { observer.disconnect(); mo.disconnect(); };
   }, []);
 
-  const openBooking = () => setModalOpen(true);
-
   return (
     <>
-      <Nav onCTA={openBooking} />
+      <Nav />
       <main>
-        <Hero onCTA={openBooking} showParticles={tweaks.showParticles} />
+        <Hero showParticles={tweaks.showParticles} />
         <WhatWeDo />
         <Problem />
         <Process />
         <Network density={tweaks.networkDensity} />
         <Team />
         <Results />
-        <FinalCTA onCTA={openBooking} />
+        <FinalCTA />
       </main>
       <Footer />
-      <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
       <FloatingWhatsApp />
       <Tweaks tweaks={tweaks} setTweak={setTweak} />
     </>

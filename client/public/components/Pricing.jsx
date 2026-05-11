@@ -30,7 +30,7 @@ function Pricing() {
       desc: 'Equipos completos + automatización integral',
       features: ['Equipos dedicados on-demand', 'Automatización end-to-end', 'IA y análisis de datos', 'Account manager exclusivo', 'SLA garantizado', 'Facturación a medida'],
       cta: 'Contactar ventas',
-      action: () => window.open('https://wa.me/542616042245?text=Hola%2C%20quiero%20consultar%20por%20el%20plan%20Enterprise', '_blank'),
+      action: () => window.open('https://wa.me/5492617172768?text=Hola%2C%20quiero%20consultar%20por%20el%20plan%20Enterprise', '_blank'),
       style: 'ghost',
     },
   ];

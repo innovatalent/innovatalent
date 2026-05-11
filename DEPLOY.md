@@ -1,160 +1,173 @@
-# Innova Talent SaaS — Guía de Deploy en VPS Hostinger
+# Innova Talent SaaS — Deploy en Railway + Hostinger
 
-## 1. Requisitos en el VPS
+## Arquitectura
 
-Conectate por SSH a tu VPS Hostinger:
+- **Railway**: Node.js app + PostgreSQL (managed)
+- **Hostinger**: DNS del dominio innovatalentlabs.com
+- Railway maneja SSL/TLS automáticamente
+
+---
+
+## 1. Subir repo a GitHub
 
 ```bash
-ssh root@TU_IP_VPS
+cd /ruta/al/proyecto
+git init
+git add -A
+git commit -m "Initial commit"
+gh repo create innovatalent-saas --private --push
 ```
 
-Instalar Docker + Docker Compose:
+## 2. Crear proyecto en Railway
 
-```bash
-curl -fsSL https://get.docker.com | sh
-apt install -y docker-compose-plugin
+1. Ir a [railway.com](https://railway.com) e iniciar sesión con GitHub
+2. Click **New Project** > **Deploy from GitHub Repo**
+3. Seleccionar el repo `innovatalent-saas`
+4. Railway detecta el Dockerfile y hace build automático
+
+## 3. Agregar PostgreSQL
+
+1. En el proyecto de Railway, click **+ New** > **Database** > **Add PostgreSQL**
+2. Railway crea la DB y conecta automáticamente la variable `DATABASE_URL` al servicio
+
+## 4. Configurar variables de entorno
+
+En Railway > tu servicio > **Variables**, agregar:
+
+```
+NODE_ENV=production
+PORT=4000
+APP_URL=https://www.innovatalentlabs.com
+FRONTEND_URL=https://www.innovatalentlabs.com
+
+# JWT (generar con: openssl rand -hex 32)
+JWT_SECRET=<random-64-chars>
+JWT_REFRESH_SECRET=<otro-random-64-chars>
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Email (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+EMAIL_FROM=Innova Talent <hola@innovatalentlabs.com>
+
+# WhatsApp (Twilio)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxx
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+
+# Stripe
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxx
+STRIPE_PRICE_ID=price_xxxxxxxxxx
+
+# AI
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxx
+GEMINI_API_KEY=<tu-key>
+GEMINI_MODEL=gemini-2.0-flash
+
+# Admin
+ADMIN_EMAIL=consulting@innovatalentlabs.com
+ADMIN_PASSWORD=<contraseña-segura>
 ```
 
-Instalar Git:
+> `DATABASE_URL` ya la provee Railway automáticamente. No la agregues manualmente.
+
+## 5. Inicializar la base de datos
+
+En Railway > tu servicio > pestaña **Settings** > **Execute Command**:
 
 ```bash
-apt install -y git
+node server/src/db/init.js
 ```
 
-## 2. Clonar el proyecto
+O desde la CLI de Railway:
 
 ```bash
-cd /opt
-git clone https://github.com/innovatalent/innovatalent-saas.git
-cd innovatalent-saas
+railway run node server/src/db/init.js
 ```
 
-## 3. Configurar variables de entorno
+## 6. Conectar dominio en Railway
+
+1. En Railway > tu servicio > **Settings** > **Networking** > **Custom Domain**
+2. Agregar: `www.innovatalentlabs.com`
+3. Railway te da un valor CNAME (ej: `abc123.up.railway.app`)
+
+## 7. Configurar DNS en Hostinger
+
+Ir a Hostinger > **Dominios** > `innovatalentlabs.com` > **DNS / Nameservers** > **Gestionar DNS**
+
+Borrar los registros A existentes y agregar:
+
+| Tipo   | Nombre | Valor                          | TTL  |
+|--------|--------|--------------------------------|------|
+| CNAME  | www    | `abc123.up.railway.app`        | 3600 |
+| CNAME  | @      | `abc123.up.railway.app`        | 3600 |
+
+> Nota: Algunos registrars no permiten CNAME en `@` (root). Si ese es el caso en Hostinger:
+> 1. Usar el CNAME solo para `www`
+> 2. Agregar un redirect 301 desde `innovatalentlabs.com` -> `www.innovatalentlabs.com` en Hostinger
+> 3. O usar Cloudflare como DNS (permite CNAME flattening en root)
+
+Esperar propagación DNS (5-30 minutos, hasta 24hs máximo).
+
+## 8. Verificar
 
 ```bash
-cp .env.example .env
-nano .env
+curl https://www.innovatalentlabs.com/api/health
+# Debería devolver: {"status":"ok","timestamp":"..."}
 ```
 
-**OBLIGATORIO cambiar:**
-- `DB_PASSWORD` → contraseña segura
-- `JWT_SECRET` → string random de 64 caracteres
-- `JWT_REFRESH_SECRET` → otro string random de 64 caracteres
-- `ADMIN_EMAIL` → tu email
-- `ADMIN_PASSWORD` → tu contraseña de admin
-- `APP_URL` → https://innovatalentlabs.com
-- `FRONTEND_URL` → https://innovatalentlabs.com
+## 9. Configurar Stripe Webhook
 
-**Para APIs externas (configurar después):**
-- `RESEND_API_KEY` → registrate en resend.com
-- `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` → para WhatsApp
-- `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + `STRIPE_PRICE_ID` → para pagos
-- `ANTHROPIC_API_KEY` → para el chat IA
-
-Generar secrets aleatorios:
-```bash
-openssl rand -hex 32   # para JWT_SECRET
-openssl rand -hex 32   # para JWT_REFRESH_SECRET
+Actualizar el endpoint del webhook en Stripe:
+```
+https://www.innovatalentlabs.com/api/payments/webhook
 ```
 
-## 4. SSL con Let's Encrypt (primera vez)
+---
 
-Antes del primer deploy, obtener el certificado:
-
-```bash
-# Crear directorio para SSL
-mkdir -p nginx/ssl
-
-# Temporalmente levantar nginx sin SSL para validar dominio
-# Editar nginx/default.conf: comentar el bloque server:443 y las líneas ssl_*
-# Luego:
-docker compose up -d nginx
-
-# Obtener certificado
-docker compose run --rm certbot certonly \
-  --webroot --webroot-path /var/www/certbot \
-  -d innovatalentlabs.com -d www.innovatalentlabs.com \
-  --email consulting@innovatalentlabs.com --agree-tos --no-eff-email
-
-# Restaurar nginx/default.conf original
-docker compose down
-```
-
-## 5. Deploy
+## Comandos útiles (Railway CLI)
 
 ```bash
-chmod +x deploy.sh
-./deploy.sh
-```
+# Instalar Railway CLI
+npm i -g @railway/cli
 
-## 6. Conectar dominio
+# Login
+railway login
 
-En tu panel de Hostinger o tu registrar de dominio:
+# Vincular proyecto
+railway link
 
-| Tipo | Nombre | Valor |
-|------|--------|-------|
-| A | @ | IP_DE_TU_VPS |
-| A | www | IP_DE_TU_VPS |
-
-Esperar propagación DNS (hasta 24hs, usualmente 5-15 min).
-
-## 7. Configurar Stripe
-
-1. Crear cuenta en stripe.com
-2. Crear un Producto "Membresía Starter" con precio $10/mes
-3. Copiar el `price_id` a `.env` → `STRIPE_PRICE_ID`
-4. Copiar tu `Secret key` a `.env` → `STRIPE_SECRET_KEY`
-5. Crear Webhook endpoint: `https://innovatalentlabs.com/api/payments/webhook`
-   - Eventos: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`
-6. Copiar el Webhook secret a `.env` → `STRIPE_WEBHOOK_SECRET`
-
-## 8. Configurar Resend (emails)
-
-1. Registrate en resend.com
-2. Verificar dominio `innovatalentlabs.com`
-3. Copiar API key a `.env` → `RESEND_API_KEY`
-
-## 9. Configurar WhatsApp (Twilio)
-
-1. Crear cuenta en twilio.com
-2. Activar WhatsApp sandbox o API
-3. Copiar credenciales a `.env`
-
-## 10. Configurar IA (Claude)
-
-1. Obtener API key en console.anthropic.com
-2. Copiar a `.env` → `ANTHROPIC_API_KEY`
-
-## 11. Comandos útiles
-
-```bash
 # Ver logs
-docker compose logs -f app
+railway logs
 
-# Reiniciar
-docker compose restart app
+# Ejecutar comando en producción
+railway run node server/src/db/init.js
 
-# Reinicializar DB (borra todo)
-docker compose exec app node server/src/db/init.js
+# Deploy manual
+railway up
 
-# Backup de la base de datos
-docker compose exec postgres pg_dump -U innovatalent_user innovatalent > backup_$(date +%Y%m%d).sql
-
-# Restaurar backup
-cat backup.sql | docker compose exec -T postgres psql -U innovatalent_user innovatalent
-
-# Renovar SSL
-docker compose run --rm certbot renew
-docker compose restart nginx
+# Variables de entorno
+railway variables
 ```
 
-## 12. Escalar
+## Auto-deploy
 
-Para escalar el proyecto:
+Railway hace deploy automático cada vez que se pushea a `main` en GitHub.
 
-1. **Más tráfico**: Subir el plan de VPS en Hostinger (más RAM/CPU)
-2. **Base de datos dedicada**: Migrar PostgreSQL a un servicio managed (Supabase, Neon, RDS)
-3. **CDN**: Agregar Cloudflare delante del dominio
-4. **Monitoreo**: Agregar Uptime Robot o Better Stack
-5. **CI/CD**: Configurar GitHub Actions para auto-deploy en push a main
-6. **Separar frontend**: Migrar a React/Next.js build con Vercel
+```bash
+git add -A
+git commit -m "update"
+git push origin main
+# Railway deploya automáticamente
+```
+
+## Backup de PostgreSQL
+
+```bash
+# Desde Railway CLI
+railway run pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
+
+# Restaurar
+railway run psql $DATABASE_URL < backup.sql
+```
