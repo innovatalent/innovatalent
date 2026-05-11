@@ -39,7 +39,7 @@ function Nav() {
         </nav>
         <div className="flex items-center gap-3">
           <a href="/auth/login.html" className="hidden sm:inline text-[14px] text-dim hover:text-ink transition">Ingresar</a>
-          <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20info%20sobre%20Innova%20Talent%20Labs" target="_blank" rel="noopener" className="btn-primary !py-2.5 !px-4 !text-[13px] sm:!text-[14px] cursor-pointer hidden sm:inline-flex" style={{borderColor: 'oklch(0.65 0.16 150 / 0.4)', color: 'oklch(0.85 0.13 150)'}}>
+          <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20info%20sobre%20Innova%20Talent%20Labs" target="_blank" rel="noopener" className="btn-ghost !py-2.5 !px-4 !text-[13px] sm:!text-[14px] cursor-pointer hidden sm:inline-flex" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.53.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.68-1.63-.93-2.23-.25-.6-.5-.5-.68-.5h-.58c-.2 0-.52.07-.8.37-.28.3-1.07 1.05-1.07 2.55s1.1 2.97 1.25 3.17c.15.2 2.15 3.3 5.22 4.6.73.3 1.3.5 1.74.64.73.23 1.4.2 1.92.12.58-.08 1.78-.72 2.03-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35M12 2C6.48 2 2 6.48 2 12c0 1.74.45 3.38 1.23 4.8L2 22l5.33-1.4A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2"/></svg>
             WhatsApp
           </a>
@@ -59,7 +59,7 @@ function Nav() {
               <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="text-[18px] text-dim hover:text-ink transition py-3 border-b border-line">{l.label}</a>
             ))}
             <a href="/auth/login.html" className="text-[18px] text-dim hover:text-ink transition py-3 border-b border-line">Ingresar</a>
-            <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20info%20sobre%20Innova%20Talent%20Labs" target="_blank" rel="noopener" onClick={() => setMenuOpen(false)} className="btn-primary justify-center mt-4 cursor-pointer" style={{borderColor: 'oklch(0.65 0.16 150 / 0.4)', color: 'oklch(0.85 0.13 150)'}}>
+            <a href="https://wa.me/5492617172768?text=Hola%2C%20quiero%20info%20sobre%20Innova%20Talent%20Labs" target="_blank" rel="noopener" onClick={() => setMenuOpen(false)} className="btn-ghost justify-center mt-4 cursor-pointer" style={{borderColor: 'oklch(0.65 0.16 150 / 0.45)', color: 'oklch(0.85 0.13 150)'}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.53.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.68-1.63-.93-2.23-.25-.6-.5-.5-.68-.5h-.58c-.2 0-.52.07-.8.37-.28.3-1.07 1.05-1.07 2.55s1.1 2.97 1.25 3.17c.15.2 2.15 3.3 5.22 4.6.73.3 1.3.5 1.74.64.73.23 1.4.2 1.92.12.58-.08 1.78-.72 2.03-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35M12 2C6.48 2 2 6.48 2 12c0 1.74.45 3.38 1.23 4.8L2 22l5.33-1.4A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2"/></svg>
               WhatsApp
             </a>
