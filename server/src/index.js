@@ -26,11 +26,12 @@ app.use(cors({
 // Rate limiting
 app.use(globalLimiter);
 
-// Redirect non-www to www in production
+// Redirect non-www to www in production (skip health check and internal requests)
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
+    if (req.path === '/api/health') return next();
     const host = req.headers.host || '';
-    if (host !== 'www.innovatalentlabs.com') {
+    if (host && !host.includes('railway') && host !== 'www.innovatalentlabs.com') {
       return res.redirect(301, `https://www.innovatalentlabs.com${req.originalUrl}`);
     }
     next();
